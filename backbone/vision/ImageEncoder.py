@@ -680,7 +680,7 @@ def image_encoder_l(pretrained=False, **kwargs):
 
 
 if __name__ == '__main__':
-    device = 'cuda:1' if torch.cuda.is_available() else 'cpu'
+    device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     model = image_encoder_s0().to(device)
     input_map = torch.randn(1, 3, 512, 512).to(device)
     output_map1, output_map2, output_map3, output_map4 = model(input_map)
