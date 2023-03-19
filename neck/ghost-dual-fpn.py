@@ -35,24 +35,25 @@ class Upsample(nn.Module):
 
 
 class GhostDualFPN(nn.Module):
-    def __init__(self, num_class_seg, phi='S0', use_spp=True):
+    def __init__(self, num_class_seg, resolution=416, phi='S0', use_spp=True):
         super(GhostDualFPN, self).__init__()
 
         self.phi = phi
         self.channel_widths = image_encoder_width[phi]
         self.use_spp = use_spp
+        self.resolution = resolution
         self.num_class_seg = num_class_seg
         if self.num_class_seg > 31:
             assert "class number of semantic segmentation must be smaller than 32 (<=31)"
 
         if phi == 'S0':
-            self.backbone = image_encoder_s0()
+            self.backbone = image_encoder_s0(resolution=resolution)
         elif phi == 'S1':
-            self.backbone = image_encoder_s1()
+            self.backbone = image_encoder_s1(resolution=resolution)
         elif phi == 'S2':
-            self.backbone = image_encoder_s2()
+            self.backbone = image_encoder_s2(resolution=resolution)
         elif phi == 'L':
-            self.backbone = image_encoder_l()
+            self.backbone = image_encoder_l(resolution=resolution)
 
         if use_spp:
             self.spp = SPP(c1=self.channel_widths[-1], c2=self.channel_widths[-1])
@@ -155,18 +156,18 @@ class GhostDualFPN(nn.Module):
 
 if __name__ == '__main__':
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    input_map = torch.randn((1, 3, 512, 512)).to(device)
-    model = GhostDualFPN(num_class_seg=9).to(device)
+    input_map = torch.randn((1, 3, 416, 416)).to(device)
+    model = GhostDualFPN(num_class_seg=9, phi='S0', resolution=416).to(device)
     output_map1, output_map2 = model(input_map)
     print(output_map1.shape)
     print(output_map2.shape)
 
-    # print(summary(model, input_size=(1, 3, 512, 512)))
-    # macs, params = profile(model, inputs=input_map)
-    # macs, params = clever_format([macs, params], "%.3f")
+    print(summary(model, input_size=(1, 3, 416, 416)))
+    macs, params = profile(model, inputs=input_map.unsqueeze(0))
+    macs, params = clever_format([macs, params], "%.3f")
 
     t1 = time.time()
-    test_times = 100
+    test_times = 300
     for i in range(test_times):
         output = model(input_map)
     t2 = time.time()

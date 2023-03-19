@@ -499,7 +499,7 @@ class ImageEncoder(nn.Module):
                  pretrained=None,
                  vit_num=0,
                  distillation=True,
-                 resolution=512,
+                 resolution=416,
                  e_ratios=expansion_ratios_L,
                  **kwargs):
         super().__init__()
@@ -624,7 +624,7 @@ def _cfg(url='', **kwargs):
 
 
 @register_model
-def image_encoder_s0(pretrained=False, **kwargs):
+def image_encoder_s0(resolution=416, pretrained=False, **kwargs):
     model = ImageEncoder(
         layers=image_encoder_depth['S0'],
         embed_dims=image_encoder_width['S0'],
@@ -632,13 +632,14 @@ def image_encoder_s0(pretrained=False, **kwargs):
         vit_num=2,
         drop_path_rate=0.0,
         e_ratios=expansion_ratios_S0,
+        resolution=resolution,
         **kwargs)
     model.default_cfg = _cfg(crop_pct=0.9)
     return model
 
 
 @register_model
-def image_encoder_s1(pretrained=False, **kwargs):
+def image_encoder_s1(resolution=416, pretrained=False, **kwargs):
     model = ImageEncoder(
         layers=image_encoder_depth['S1'],
         embed_dims=image_encoder_width['S1'],
@@ -646,13 +647,14 @@ def image_encoder_s1(pretrained=False, **kwargs):
         vit_num=2,
         drop_path_rate=0.0,
         e_ratios=expansion_ratios_S1,
+        resolution=resolution,
         **kwargs)
     model.default_cfg = _cfg(crop_pct=0.9)
     return model
 
 
 @register_model
-def image_encoder_s2(pretrained=False, **kwargs):
+def image_encoder_s2(resolution=416, pretrained=False, **kwargs):
     model = ImageEncoder(
         layers=image_encoder_depth['S2'],
         embed_dims=image_encoder_width['S2'],
@@ -660,13 +662,14 @@ def image_encoder_s2(pretrained=False, **kwargs):
         vit_num=4,
         drop_path_rate=0.02,
         e_ratios=expansion_ratios_S2,
+        resolution=resolution,
         **kwargs)
     model.default_cfg = _cfg(crop_pct=0.9)
     return model
 
 
 @register_model
-def image_encoder_l(pretrained=False, **kwargs):
+def image_encoder_l(resolution=416, pretrained=False, **kwargs):
     model = ImageEncoder(
         layers=image_encoder_depth['L'],
         embed_dims=image_encoder_width['L'],
@@ -674,6 +677,7 @@ def image_encoder_l(pretrained=False, **kwargs):
         vit_num=6,
         drop_path_rate=0.1,
         e_ratios=expansion_ratios_L,
+        resolution=resolution,
         **kwargs)
     model.default_cfg = _cfg(crop_pct=0.9)
     return model
@@ -681,8 +685,8 @@ def image_encoder_l(pretrained=False, **kwargs):
 
 if __name__ == '__main__':
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    model = image_encoder_s0().to(device)
-    input_map = torch.randn(1, 3, 512, 512).to(device)
+    model = image_encoder_l().to(device)
+    input_map = torch.randn(1, 3, 416, 416).to(device)
     output_map1, output_map2, output_map3, output_map4 = model(input_map)
     print(output_map1.shape)
     print(output_map2.shape)
