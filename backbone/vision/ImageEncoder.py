@@ -685,8 +685,8 @@ def image_encoder_l(resolution=416, pretrained=False, **kwargs):
 
 if __name__ == '__main__':
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
-    model = image_encoder_l().to(device)
-    input_map = torch.randn(1, 3, 416, 416).to(device)
+    model = image_encoder_s2(resolution=320).to(device)
+    input_map = torch.randn(1, 3, 320, 320).to(device)
     output_map1, output_map2, output_map3, output_map4 = model(input_map)
     print(output_map1.shape)
     print(output_map2.shape)

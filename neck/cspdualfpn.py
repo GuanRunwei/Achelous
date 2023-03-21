@@ -10,6 +10,9 @@ from neck.spp import *
 from backbone.conv_utils.normal_conv import *
 from backbone.conv_utils.ghost_conv import *
 from backbone.attention_modules.shuffle_attention import *
+from backbone.vision.mobilevit_modules.mobilevit import mobilevit_xxs, mobilevit_xs, mobilevit_s
+from backbone.vision.edgenext_modules.model import edgenext_xx_small, edgenext_x_small, edgenext_small
+from backbone.vision.edgevit_modules.edgevit import edgevit_xxs, edgevit_xs, edgevit_s
 
 
 image_encoder_width = {
@@ -34,9 +37,48 @@ class Upsample(nn.Module):
         return x
 
 
-class GhostDualFPN(nn.Module):
-    def __init__(self, num_class_seg, resolution=416, phi='S0', use_spp=True):
-        super(GhostDualFPN, self).__init__()
+class Bottleneck(nn.Module):
+    # Standard bottleneck
+    def __init__(self, in_channels, out_channels, shortcut=True, expansion=0.5, depthwise=False, act="silu",):
+        super().__init__()
+        hidden_channels = int(out_channels * expansion)
+        Conv = DWConv if depthwise else BaseConv
+        self.conv1 = BaseConv(in_channels, hidden_channels, 1, stride=1, act=act)
+        self.conv2 = Conv(hidden_channels, out_channels, 3, stride=1, act=act)
+        self.use_add = shortcut and in_channels == out_channels
+
+    def forward(self, x):
+        y = self.conv2(self.conv1(x))
+        if self.use_add:
+            y = y + x
+        return y
+
+
+class CSPLayer(nn.Module):
+    def __init__(self, in_channels, out_channels, n=1, shortcut=True, expansion=0.5, depthwise=False, act="silu", ):
+        # ch_in, ch_out, number, shortcut, groups, expansion
+        super().__init__()
+        hidden_channels = int(out_channels * expansion)  # hidden channels
+        self.conv1 = BaseConv(in_channels, hidden_channels, 1, stride=1, act=act)
+        self.conv2 = BaseConv(in_channels, hidden_channels, 1, stride=1, act=act)
+
+        self.conv3 = BaseConv(2 * hidden_channels, out_channels, 1, stride=1, act=act)
+
+        module_list = [Bottleneck(hidden_channels, hidden_channels, shortcut, 1.0, depthwise, act=act) for _ in
+                       range(n)]
+        self.m = nn.Sequential(*module_list)
+
+    def forward(self, x):
+        x_1 = self.conv1(x)
+        x_2 = self.conv2(x)
+        x_1 = self.m(x_1)
+        x = torch.cat((x_1, x_2), dim=1)
+        return self.conv3(x)
+
+
+class CSPDualFPN(nn.Module):
+    def __init__(self, num_class_seg, resolution=416, phi='S0', use_spp=True, backbone='ef'):
+        super(CSPDualFPN, self).__init__()
 
         self.phi = phi
         self.channel_widths = image_encoder_width[phi]
@@ -47,26 +89,52 @@ class GhostDualFPN(nn.Module):
             assert "class number of semantic segmentation must be smaller than 32 (<=31)"
 
         if phi == 'S0':
-            self.backbone = image_encoder_s0(resolution=resolution)
+            if backbone == 'ef':
+                self.backbone = image_encoder_s0(resolution=resolution)
+            elif backbone == 'mv':
+                self.backbone = mobilevit_xxs(resolution=resolution)
+            elif backbone == 'en':
+                self.backbone = edgenext_xx_small()
+            elif backbone == 'ev':
+                self.backbone = edgevit_xxs(resolution=resolution)
+
         elif phi == 'S1':
-            self.backbone = image_encoder_s1(resolution=resolution)
+            if backbone == 'ef':
+                self.backbone = image_encoder_s1(resolution=resolution)
+            elif backbone == 'mv':
+                self.backbone = mobilevit_xs(resolution=resolution)
+            elif backbone == 'en':
+                self.backbone = edgenext_x_small()
+            elif backbone == 'ev':
+                self.backbone = edgevit_xs(resolution=resolution)
+
         elif phi == 'S2':
-            self.backbone = image_encoder_s2(resolution=resolution)
+            if backbone == 'ef':
+                self.backbone = image_encoder_s2(resolution=resolution)
+            elif backbone == 'mv':
+                self.backbone = mobilevit_s(resolution=resolution)
+            elif backbone == 'en':
+                self.backbone = edgenext_small()
+            elif backbone == 'ev':
+                self.backbone = edgevit_s(resolution=resolution)
+
         elif phi == 'L':
             self.backbone = image_encoder_l(resolution=resolution)
+            print("Only EfficientFormer V2 supports L size model.")
 
         if use_spp:
             self.spp = SPP(c1=self.channel_widths[-1], c2=self.channel_widths[-1])
+        else:
+            self.spp = BaseConv(in_channels=self.channel_widths[-1], out_channels=self.channel_widths[-1], ksize=3,
+                                stride=1)
 
         # 176, 16, 16 -> 192, 32, 32
         self.upsample_5_to_4 = Upsample(in_channels=self.channel_widths[-1], out_channels=self.channel_widths[-2])
-        self.ghost_5_to_4 = GhostBottleneck(in_chs=self.channel_widths[-2] * 2, mid_chs=self.channel_widths[-2] * 4,
-                                            out_chs=self.channel_widths[-2] * 2)
+        self.ghost_5_to_4 = CSPLayer(in_channels=self.channel_widths[-2] * 2, out_channels=self.channel_widths[-2] * 2)
 
         # 192, 32, 32 -> 96, 64, 64
         self.upsample_4_to_3 = Upsample(in_channels=self.channel_widths[-2] * 2, out_channels=self.channel_widths[-3])
-        self.ghost_4_to_3 = GhostBottleneck(in_chs=self.channel_widths[-3] * 2, mid_chs=self.channel_widths[-3] * 4,
-                                            out_chs=self.channel_widths[-3] * 2)
+        self.ghost_4_to_3 = CSPLayer(in_channels=self.channel_widths[-3] * 2, out_channels=self.channel_widths[-3] * 2)
 
         # 96, 64, 64 -> lane-segmentation 96, 64, 64
         self.stage_3_lane_seg = ShuffleAttention(channel=self.channel_widths[-3] * 2, G=4)
@@ -76,44 +144,45 @@ class GhostDualFPN(nn.Module):
         # ======================================= WaterLine Segmentation ========================================= #
         # lane-segmentation 96, 64, 64 -> 48, 128, 128
         self.lane_seg_3_to_2 = Upsample(in_channels=self.channel_widths[-3] * 2, out_channels=self.channel_widths[-3])
-        self.lane_seg_ghost_3_to_2 = GhostModule(inp=self.channel_widths[-3], oup=self.channel_widths[-3])
+        self.lane_seg_ghost_3_to_2 = Bottleneck(in_channels=self.channel_widths[-3], out_channels=self.channel_widths[-3])
 
         # lane-segmentation 48, 128, 128 -> 32, 256, 256
         self.lane_seg_2_to_1 = Upsample(in_channels=self.channel_widths[-3], out_channels=self.channel_widths[-4])
-        self.lane_seg_ghost_2_to_1 = GhostModule(inp=self.channel_widths[-4], oup=self.channel_widths[-4])
+        self.lane_seg_ghost_2_to_1 = Bottleneck(in_channels=self.channel_widths[-4], out_channels=self.channel_widths[-4])
 
         # lane-segmentation 32, 256, 256 -> 32, 512, 512
         self.lane_seg_1_to_0 = Upsample(in_channels=self.channel_widths[-4], out_channels=self.channel_widths[-4])
-        self.lane_seg_ghost_1_to_0 = GhostModule(inp=self.channel_widths[-4], oup=self.channel_widths[-4])
+        self.lane_seg_ghost_1_to_0 = Bottleneck(in_channels=self.channel_widths[-4], out_channels=self.channel_widths[-4])
 
         # lane-segmentation 32, 512, 512 -> 2, 512, 512
-        self.lane_seg_head = GhostModule(inp=self.channel_widths[-4], oup=2)
+        self.lane_seg_head = Bottleneck(in_channels=self.channel_widths[-4], out_channels=2)
         # ======================================================================================================== #
 
         # ======================================= Semantic Segmentation ========================================== #
         # semantic-segmentation 96, 64, 64 -> 48, 128, 128
         self.se_seg_3_to_2 = Upsample(in_channels=self.channel_widths[-3] * 2, out_channels=self.channel_widths[-3])
-        self.se_seg_ghost_3_to_2 = GhostModule(inp=self.channel_widths[-3], oup=self.channel_widths[-3])
+        self.se_seg_ghost_3_to_2 = Bottleneck(in_channels=self.channel_widths[-3], out_channels=self.channel_widths[-3])
 
         # semantic-segmentation 48, 128, 128 -> 32, 256, 256
         self.se_seg_2_to_1 = Upsample(in_channels=self.channel_widths[-3], out_channels=self.channel_widths[-4])
-        self.se_seg_ghost_2_to_1 = GhostModule(inp=self.channel_widths[-4], oup=self.channel_widths[-4])
+        self.se_seg_ghost_2_to_1 = Bottleneck(in_channels=self.channel_widths[-4], out_channels=self.channel_widths[-4])
 
         # semantic-segmentation 32, 256, 256 -> 32, 512, 512
         self.se_seg_1_to_0 = Upsample(in_channels=self.channel_widths[-4], out_channels=self.channel_widths[-4])
-        self.se_seg_ghost_1_to_0 = GhostModule(inp=self.channel_widths[-4], oup=self.channel_widths[-4])
+        self.se_seg_ghost_1_to_0 = Bottleneck(in_channels=self.channel_widths[-4], out_channels=self.channel_widths[-4])
 
         # semantic-segmentation 32, 512, 512 -> num_class_seg, 512, 512
-        self.se_seg_head = GhostModule(inp=self.channel_widths[-4], oup=self.num_class_seg)
+        self.se_seg_head = Bottleneck(in_channels=self.channel_widths[-4], out_channels=self.num_class_seg)
         # ======================================================================================================== #
+
+        # self.fpn_stage5_det = GhostModule(inp=self.channel_widths[-1], oup=self.channel_widths[-1]*2)
 
     def forward(self, x):
         map_stage2, map_stage3, map_stage4, map_stage5 = self.backbone(x)
 
-        if self.use_spp:
-            fpn_stage5 = self.spp(map_stage5)
-        else:
-            fpn_stage5 = map_stage5
+        # fpn_stage5_det = self.fpn_stage5_det(map_stage5)
+
+        fpn_stage5 = self.spp(map_stage5)
 
         fpn_stage4 = self.upsample_5_to_4(fpn_stage5)
         fpn_stage4 = torch.cat([fpn_stage4, map_stage4], dim=1)
@@ -150,15 +219,16 @@ class GhostDualFPN(nn.Module):
         fpn_stage0_se = self.se_seg_ghost_1_to_0(fpn_stage0_se)
 
         se_seg_output = self.se_seg_head(fpn_stage0_se)
+        # ===================================================================== #
 
-        return se_seg_output, lane_seg_output
+        return se_seg_output, lane_seg_output, (map_stage5, map_stage4, map_stage3)
 
 
 if __name__ == '__main__':
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     input_map = torch.randn((1, 3, 416, 416)).to(device)
-    model = GhostDualFPN(num_class_seg=9, phi='S0', resolution=416).to(device)
-    output_map1, output_map2 = model(input_map)
+    model = CSPDualFPN(num_class_seg=9, phi='S0', resolution=416).to(device)
+    output_map1, output_map2, _= model(input_map)
     print(output_map1.shape)
     print(output_map2.shape)
 
@@ -172,22 +242,3 @@ if __name__ == '__main__':
         output = model(input_map)
     t2 = time.time()
     print("fps:", (1 / ((t2 - t1) / test_times)))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
