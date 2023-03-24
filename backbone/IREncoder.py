@@ -91,7 +91,7 @@ if __name__ == '__main__':
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     input_map = torch.randn((1, 3, 320, 320)).to(device)
     input_map_radar = torch.randn((1, 3, 320, 320)).to(device)
-    model = IREncoder(num_class_seg=9, phi='S0', resolution=320).to(device)
+    model = IREncoder(num_class_seg=9, phi='S2', resolution=320).to(device)
     output_map1, output_map2, output_map3 = model(input_map, input_map_radar)
     print(output_map1[0].shape)
     print(output_map1[1].shape)

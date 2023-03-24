@@ -21,17 +21,16 @@ image_encoder_width = {
 
 
 class RadarConv(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride, dilation=2, is_dilation=False):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, first_calculator='pool'):
         super(RadarConv, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
 
-        if is_dilation is True:
-            self.initial_conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
-                                  stride=stride, padding=stride * 2, dilation=dilation)
-        else:
+        if first_calculator == 'conv':
             self.initial_conv = nn.Conv2d(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
                                           stride=stride, padding=kernel_size // 2)
+        elif first_calculator == 'pool':
+            self.initial_conv = nn.AvgPool2d(3, stride=1, padding=1)
 
         self.deformable_conv = DeformableConv2d(in_channels=out_channels, out_channels=out_channels, kernel_size=3,
                                                 stride=stride, padding=3 // 2)
@@ -95,7 +94,7 @@ class RCNet(nn.Module):
                                             out_channels=image_encoder_width[phi][i] // 4, down=True))
 
         self.rc_blocks = nn.ModuleList(stage_blocks)
-        print(len(self.rc_blocks))
+        # print(len(self.rc_blocks))
 
     def forward_blocks(self, x):
         output_features = []

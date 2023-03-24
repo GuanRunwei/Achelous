@@ -44,7 +44,7 @@ class Bottleneck(nn.Module):
         hidden_channels = int(out_channels * expansion)
         Conv = DWConv if depthwise else BaseConv
         self.conv1 = BaseConv(in_channels, hidden_channels, 1, stride=1, act=act)
-        self.conv2 = Conv(hidden_channels, out_channels, 3, stride=1, act=act)
+        self.conv2 = Conv(hidden_channels, out_channels, 3, stride=1)
         self.use_add = shortcut and in_channels == out_channels
 
     def forward(self, x):

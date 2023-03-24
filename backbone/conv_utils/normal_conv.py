@@ -21,7 +21,7 @@ def get_activation(name="silu", inplace=True):
 
 
 class DWConv(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, bias=True):
+    def __init__(self, in_channels, out_channels, kernel_size=3, stride=1, padding=1, dilation=1, bias=True):
         super().__init__()
         self.dconv = nn.Conv2d(in_channels=in_channels, out_channels=in_channels, kernel_size=kernel_size,
                                stride=stride, groups=in_channels, padding=padding, dilation=dilation, bias=bias)

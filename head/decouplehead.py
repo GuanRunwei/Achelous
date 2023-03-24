@@ -14,7 +14,7 @@ image_encoder_width = {
 
 
 class DecoupleHead(nn.Module):
-    def __init__(self, num_classes, width=1.0, phi='S0', act="relu", depthwise=True):
+    def __init__(self, num_classes, width=1.0, phi='S0', act="relu", depthwise=True, nano_head=True):
         super().__init__()
         Conv = BaseConv
 
@@ -27,27 +27,32 @@ class DecoupleHead(nn.Module):
         self.obj_preds = nn.ModuleList()
         self.stems = nn.ModuleList()
 
+        if nano_head is True:
+            base_num = 64
+        else:
+            base_num = 256
+
         for i in range(len(in_channels)):
             self.stems.append(
-                Conv(in_channels=int(in_channels[i] * width), out_channels=int(256 * width), ksize=1, stride=1,
+                Conv(in_channels=int(in_channels[i] * width), out_channels=int(base_num * width), ksize=1, stride=1,
                          act=act))
             self.cls_convs.append(nn.Sequential(*[
-                Conv(in_channels=int(256 * width), out_channels=int(256 * width), ksize=5, stride=1, act=act, ds_conv=depthwise),
-                Conv(in_channels=int(256 * width), out_channels=int(256 * width), ksize=5, stride=1, act=act, ds_conv=depthwise),
+                Conv(in_channels=int(base_num * width), out_channels=int(base_num * width), ksize=5, stride=1, act=act, ds_conv=depthwise),
+                Conv(in_channels=int(base_num * width), out_channels=int(base_num * width), ksize=5, stride=1, act=act, ds_conv=depthwise),
             ]))
             self.cls_preds.append(
-                nn.Conv2d(in_channels=int(256 * width), out_channels=num_classes, kernel_size=1, stride=1, padding=0)
+                nn.Conv2d(in_channels=int(base_num * width), out_channels=num_classes, kernel_size=1, stride=1, padding=0)
             )
 
             self.reg_convs.append(nn.Sequential(*[
-                Conv(in_channels=int(256 * width), out_channels=int(256 * width), ksize=5, stride=1, act=act, ds_conv=depthwise),
-                Conv(in_channels=int(256 * width), out_channels=int(256 * width), ksize=5, stride=1, act=act, ds_conv=depthwise)
+                Conv(in_channels=int(base_num * width), out_channels=int(base_num * width), ksize=5, stride=1, act=act, ds_conv=depthwise),
+                Conv(in_channels=int(base_num * width), out_channels=int(base_num * width), ksize=5, stride=1, act=act, ds_conv=depthwise)
             ]))
             self.reg_preds.append(
-                nn.Conv2d(in_channels=int(256 * width), out_channels=4, kernel_size=1, stride=1, padding=0)
+                nn.Conv2d(in_channels=int(base_num * width), out_channels=4, kernel_size=1, stride=1, padding=0)
             )
             self.obj_preds.append(
-                nn.Conv2d(in_channels=int(256 * width), out_channels=1, kernel_size=1, stride=1, padding=0)
+                nn.Conv2d(in_channels=int(base_num * width), out_channels=1, kernel_size=1, stride=1, padding=0)
             )
 
     def forward(self, inputs):

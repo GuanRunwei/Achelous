@@ -24,7 +24,7 @@ image_encoder_width = {
 
 class Achelous(nn.Module):
     def __init__(self, num_det, num_seg, phi='SO', image_channels=3, radar_channels=3, resolution=416,
-                 backbone='ef', neck='gdf'):
+                 backbone='ef', neck='gdf', nano_head=False):
         super(Achelous, self).__init__()
 
         self.num_det = num_det
@@ -37,7 +37,7 @@ class Achelous(nn.Module):
 
         self.image_radar_encoder = IREncoder(num_class_seg=num_seg, resolution=resolution, backbone=backbone, neck=neck,
                                              phi=phi)
-        self.det_head = DecoupleHead(num_classes=num_det, phi=phi)
+        self.det_head = DecoupleHead(num_classes=num_det, phi=phi, nano_head=nano_head)
 
     def forward(self, x, x_radar):
         fpn_out, se_seg_output, lane_seg_output = self.image_radar_encoder(x, x_radar)
@@ -49,7 +49,7 @@ if __name__ == '__main__':
     device = 'cuda:0' if torch.cuda.is_available() else 'cpu'
     input_map = torch.randn((1, 3, 320, 320)).to(device)
     input_map_radar = torch.randn((1, 3, 320, 320)).to(device)
-    model = Achelous(num_det=8, num_seg=9, phi='S1', resolution=320, backbone='ev', neck='cdf').to(device)
+    model = Achelous(num_det=8, num_seg=9, phi='S0', resolution=320, backbone='ef', neck='cdf').to(device)
     output_map1, output_map2, output_map3 = model(input_map, input_map_radar)
     print(output_map1[0].shape)
     print(output_map1[1].shape)
@@ -57,12 +57,12 @@ if __name__ == '__main__':
     print(output_map2.shape)
     print(output_map3.shape)
 
-    # print(summary(model, input_size=[(1, 3, 416, 416), (1, 3, 416, 416)]))
-    # macs, params = profile(model, inputs=[input_map, input_map_radar])
-    # macs *= 2
-    # macs, params = clever_format([macs, params], "%.3f")
-    # print("FLOPs:", macs)
-    # print("Params:", params)
+    print(summary(model, input_size=[(1, 3, 320, 320), (1, 3, 320, 320)]))
+    macs, params = profile(model, inputs=[input_map, input_map_radar])
+    macs *= 2
+    macs, params = clever_format([macs, params], "%.3f")
+    print("FLOPs:", macs)
+    print("Params:", params)
 
     t1 = time.time()
     test_times = 300
