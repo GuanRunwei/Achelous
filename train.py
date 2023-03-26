@@ -506,7 +506,6 @@ if __name__ == "__main__":
                              pin_memory=True,
                              drop_last=True, collate_fn=yolo_dataset_collate, sampler=val_sampler)
 
-
         # ----------------------#
         #   记录eval的map曲线
         # ----------------------#
