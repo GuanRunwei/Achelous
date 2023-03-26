@@ -137,7 +137,7 @@ class EvalCallback():
             # ---------------------------------------------------------#
             #   将图像输入网络当中进行预测！
             # ---------------------------------------------------------#
-            outputs, _ = self.net(images, radar_data)
+            outputs = self.net(images, radar_data)[0]
             outputs = decode_outputs(outputs, self.input_shape, local_rank)
             # ---------------------------------------------------------#
             #   将预测框进行堆叠，然后进行非极大抑制

@@ -12,7 +12,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 
-from nets.Achelous import Achelous
+from nets.Achelous import *
 from loss.detection_loss import (ModelEMA, YOLOLoss, get_lr_scheduler,
                                 set_optimizer_lr, weights_init)
 from utils.callbacks import LossHistory, EvalCallback
@@ -62,7 +62,7 @@ if __name__ == "__main__":
     # ------------------------------------------------------#
     #   backbone (4 options): ef (EfficientFormer), en (EdgeNeXt), ev (EdgeViT), mv (MobileViT)
     # ------------------------------------------------------#
-    backbone = 'ef'
+    backbone = 'en'
 
     # ------------------------------------------------------#
     #   neck (2 options): gdf (Ghost-Dual-FPN), cdf (CSP-Dual-FPN)
@@ -119,7 +119,7 @@ if __name__ == "__main__":
     #                       (当Freeze_Train=False时失效)
     # ------------------------------------------------------------------#
     Init_Epoch = 0
-    Freeze_Epoch = 10
+    Freeze_Epoch = 0
     Freeze_batch_size = 32
     # ------------------------------------------------------------------#
     #   解冻阶段训练参数
@@ -131,7 +131,7 @@ if __name__ == "__main__":
     #   Unfreeze_batch_size     模型在解冻后的batch_size
     # ------------------------------------------------------------------#
     UnFreeze_Epoch = 100
-    Unfreeze_batch_size = 16
+    Unfreeze_batch_size = 32
     # ------------------------------------------------------------------#
     #   Freeze_Train    是否进行冻结训练
     #                   默认先冻结主干训练后解冻训练。
@@ -265,7 +265,7 @@ if __name__ == "__main__":
             print(f"[{os.getpid()}] (rank = {rank}, local_rank = {local_rank}) training...")
             print("Gpu Device Count : ", ngpus_per_node)
     else:
-        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
         local_rank = 0
         rank = 0
 
@@ -277,8 +277,8 @@ if __name__ == "__main__":
     # ------------------------------------------------------#
     #   创建yolo模型
     # ------------------------------------------------------#
-    model = Achelous(resolution=input_shape[0], num_det=num_classes, num_seg=num_classes_seg, phi=phi, backbone=backbone, neck=neck,
-                     nano_head=lightweight).cuda(local_rank)
+    model = Achelous3T(resolution=input_shape[0], num_det=num_classes, num_seg=num_classes_seg, phi=phi, backbone=backbone, neck=neck,
+                     nano_head=lightweight).to(device)
     weights_init(model)
     if model_path != '':
         # ------------------------------------------------------#
@@ -399,6 +399,7 @@ if __name__ == "__main__":
         print("\033[1;33;44m[Warning] 由于总训练步长为%d，小于建议总步长%d，建议设置总世代为%d。\033[0m" % (
             total_step, wanted_step, wanted_epoch))
 
+
     # ------------------------------------------------------#
     #   主干特征提取网络特征通用，冻结训练可以加快训练速度
     #   也可以在训练初期防止权值被破坏。
@@ -484,7 +485,6 @@ if __name__ == "__main__":
                                   special_aug_ratio=0, radar_root=radar_file_path,
                                   num_classes_seg=num_classes_seg, seg_dataset_path=se_seg_path,
                                   water_seg_dataset_path=wl_seg_path)
-
 
         if distributed:
             train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset, shuffle=True, )
