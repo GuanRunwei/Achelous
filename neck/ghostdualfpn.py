@@ -195,6 +195,7 @@ if __name__ == '__main__':
     print(output_map1.shape)
     print(output_map2.shape)
 
+
     print(summary(model, input_size=(1, 3, 416, 416)))
     macs, params = profile(model, inputs=input_map.unsqueeze(0))
     macs, params = clever_format([macs, params], "%.3f")
