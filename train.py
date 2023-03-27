@@ -12,8 +12,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
 from nets.Achelous import *
-from loss.detection_loss import (ModelEMA, YOLOLoss, get_lr_scheduler,
-                                set_optimizer_lr, weights_init)
+from loss.detection_loss import (ModelEMA, YOLOLoss, get_lr_scheduler, set_optimizer_lr, weights_init)
 from utils.callbacks import LossHistory, EvalCallback
 from utils_seg.callbacks import EvalCallback as EvalCallback_seg
 from utils_seg_line.callbacks import EvalCallback as EvalCallback_seg_line
