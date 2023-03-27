@@ -34,7 +34,7 @@ class PointNet_SEG(nn.Module):
         x = x.transpose(2,1).contiguous()
         x = F.log_softmax(x.view(-1,self.k), dim=-1)
         x = x.view(batchsize, n_pts, self.k)
-        return x, trans_feat
+        return x
 
 
 class get_loss(torch.nn.Module):

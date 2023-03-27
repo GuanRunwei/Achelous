@@ -83,7 +83,7 @@ def print_love():
 
 def show_config(**kwargs):
     print("您已开始训练 Achelous V1 (水神初代)模型，这是一个基于多传感器融合水域通用感知任务基础模型")
-    print("Achelous V1 速度贼快，最最最重要的是，我们保证GPT-4绝对绝对绝对写不出来 …")
+    print("Achelous V1 速度贼快，能同时完成水域多目标检测、多目标语义分割、可行驶区域分割、水岸线分割、毫米波雷达点云语义分割")
     print("作者：大脸猫，知晓技术")
     print_love()
     print('Configurations:')

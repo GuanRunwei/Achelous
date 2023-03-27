@@ -7,11 +7,11 @@ import torch.nn.functional as F
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 import scipy.signal
-
+import pandas as pd
 import cv2
 import shutil
 import numpy as np
-
+from sklearn.preprocessing import MinMaxScaler, normalize
 from PIL import Image
 from tqdm import tqdm
 from torch.utils.tensorboard import SummaryWriter
@@ -82,7 +82,8 @@ class LossHistory():
 
 
 class EvalCallback():
-    def __init__(self, net, input_shape, num_classes, image_ids, dataset_path, log_dir, cuda, radar_path, jpg_path, local_rank,\
+    def __init__(self, net, input_shape, num_classes, image_ids, dataset_path, log_dir, cuda, radar_path, jpg_path,
+                 local_rank, radar_pc_seg_path, is_radar_pc_seg, radar_pc_seg_features, radar_pc_seg_label, radar_pc_num,
                  miou_out_path=".temp_miou_out", eval_flag=True, period=1):
         super(EvalCallback, self).__init__()
 
@@ -99,6 +100,11 @@ class EvalCallback():
         self.radar_path = radar_path
         self.jpg_path = jpg_path
         self.local_rank = local_rank
+        self.radar_pc_seg_path = radar_pc_seg_path
+        self.is_radar_pc_seg = is_radar_pc_seg
+        self.radar_pc_seg_features = radar_pc_seg_features
+        self.radar_pc_seg_label = radar_pc_seg_label
+        self.radar_pc_num = radar_pc_num
 
         self.image_ids = [os.path.splitext(image_id.split('/')[-1].split(' ')[0])[0]for image_id in image_ids]
 
@@ -109,7 +115,7 @@ class EvalCallback():
                 f.write(str(0))
                 f.write("\n")
 
-    def get_miou_png(self, image, radar_data):
+    def get_miou_png(self, image, radar_data, image_id):
         # ---------------------------------------------------------#
         #   在这里将图像转换成RGB图像，防止灰度图在预测时报错。
         #   代码仅仅支持RGB图像的预测，所有其它类型的图像都会转化成RGB
@@ -136,7 +142,30 @@ class EvalCallback():
             # ---------------------------------------------------#
             #   图片传入网络进行预测
             # ---------------------------------------------------#
-            pr = self.net(images, radar_data)[2][0]
+            if self.is_radar_pc_seg:
+                # -------------------------------- 麻烦的点云读取 ---------------------------------- #
+                radar_pc_file = pd.read_csv(os.path.join(self.radar_pc_seg_path, image_id + '.csv'), index_col=0)
+                radar_pc_features = radar_pc_file[self.radar_pc_seg_features]
+                radar_pc_labels = radar_pc_file[self.radar_pc_seg_label]
+
+                radar_pc_features = np.asarray(radar_pc_features)
+                radar_pc_labels = np.asarray(radar_pc_labels)
+
+                radar_pc_indexes = np.random.choice(radar_pc_features.shape[0], self.radar_pc_num, replace=True)
+
+                align_radar_pc_features = radar_pc_features[radar_pc_indexes]
+                align_radar_pc_labels = radar_pc_labels[radar_pc_indexes]
+                align_radar_pc_features = normalize(X=align_radar_pc_features, axis=0)
+                align_radar_pc_labels = align_radar_pc_labels
+
+                align_radar_pc_features = torch.from_numpy(np.array(align_radar_pc_features, dtype=np.float32)).type(
+                    torch.FloatTensor).unsqueeze(0).permute(0, 2, 1).cuda(self.local_rank)
+                align_radar_pc_labels = torch.from_numpy(np.array(align_radar_pc_labels, dtype=np.int32)). \
+                    type(torch.LongTensor).cuda(self.local_rank)
+                # --------------------------------------------------------------------------------- #
+                pr = self.net(images, radar_data, align_radar_pc_features)[2][0]
+            else:
+                pr = self.net(images, radar_data)[2][0]
             # ---------------------------------------------------#
             #   取出每一个像素点的种类
             # ---------------------------------------------------#
@@ -184,7 +213,7 @@ class EvalCallback():
                 # ------------------------------#
                 #   获得预测txt
                 # ------------------------------#
-                image = self.get_miou_png(image, radar_data)
+                image = self.get_miou_png(image, radar_data, image_id)
                 image.save(os.path.join(pred_dir, image_id + ".png"))
 
             print("Calculate miou.")

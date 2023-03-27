@@ -8,8 +8,10 @@ from torch.utils.data.dataset import Dataset
 import albumentations as A
 from utils.utils import cvtColor, preprocess_input, preprocess_input_radar
 from utils_seg.utils import preprocess_input as preprocess_input_seg
+from sklearn.preprocessing import MinMaxScaler, normalize
 from utils_seg_line.utils import generate_black_images
 import random as rd
+import pandas as pd
 import matplotlib.pyplot as plt
 import os
 
@@ -35,8 +37,9 @@ transform_fog = A.Compose(
 
 class YoloDataset(Dataset):
     def __init__(self, annotation_lines, input_shape, num_classes, num_classes_seg, epoch_length, radar_root, \
-                 mosaic, mixup, mosaic_prob, mixup_prob,
-                 seg_dataset_path, water_seg_dataset_path, train, special_aug_ratio=0.7):
+                 mosaic, mixup, mosaic_prob, mixup_prob, seg_dataset_path, water_seg_dataset_path,
+                 radar_pc_seg_dataset_path, train, radar_pc_seg_features, is_radar_pc_seg=False, radar_pc_num=512,
+                 special_aug_ratio=0.7, radar_pc_seg_label='label'):
         super(YoloDataset, self).__init__()
 
         # ------------------------- 通用 --------------------------- #
@@ -62,12 +65,20 @@ class YoloDataset(Dataset):
         self.num_classes_seg = num_classes_seg
         # ----------------------------------------------------------- #
 
-        # ------------------------ 水岸线分割 ------------------------ #
+        # ------------------------ 水岸线分割 ----------------------- #
         self.water_seg_dataset_path = water_seg_dataset_path
         # ----------------------------------------------------------- #
 
-        # ------------------------- 雷达 --------------------------- #
+        # --------------- 雷达map 用于目标检测特征增强 -------------- #
         self.radar_root = radar_root
+        # ---------------------------------------------------------- #
+
+        # ---------------------- 雷达点云路径 ---------------------- #
+        self.is_radar_pc_seg = is_radar_pc_seg
+        self.radar_pc_seg_features = radar_pc_seg_features
+        self.radar_pc_seg_dataset_path = radar_pc_seg_dataset_path
+        self.radar_pc_num = radar_pc_num
+        self.radar_pc_seg_label = radar_pc_seg_label
         # ---------------------------------------------------------- #
 
     def __len__(self):
@@ -113,6 +124,26 @@ class YoloDataset(Dataset):
 
         seg_w_labels = np.eye(2 + 1)[png_w.reshape([-1])]
         seg_w_labels = seg_w_labels.reshape((int(self.input_shape[0]), int(self.input_shape[1]), 2 + 1))
+
+        # ------------- 毫米波雷达点云分割数据 --------------- #
+        if self.is_radar_pc_seg:
+            radar_pc_file = pd.read_csv(os.path.join(self.radar_pc_seg_dataset_path, name + '.csv'), index_col=0)
+            radar_pc_features = radar_pc_file[self.radar_pc_seg_features]
+            radar_pc_labels = radar_pc_file[self.radar_pc_seg_label]
+
+            radar_pc_features = np.asarray(radar_pc_features)
+            radar_pc_labels = np.asarray(radar_pc_labels)
+
+            radar_pc_indexes = np.random.choice(radar_pc_features.shape[0], self.radar_pc_num, replace=True)
+
+            align_radar_pc_features = radar_pc_features[radar_pc_indexes]
+            align_radar_pc_labels = radar_pc_labels[radar_pc_indexes]
+            align_radar_pc_features = normalize(X=align_radar_pc_features, axis=0)
+            align_radar_pc_labels = align_radar_pc_labels
+
+            return image, box, radar, png, png_w, seg_labels, seg_w_labels, align_radar_pc_features, \
+                   align_radar_pc_labels
+        # --------------------------------------------------- #
 
         return image, box, radar, png, png_w, seg_labels, seg_w_labels
 
@@ -481,5 +512,41 @@ def yolo_dataset_collate(batch):
     seg_labels = torch.from_numpy(np.array(seg_labels)).type(torch.FloatTensor)
     seg_w_labels = torch.from_numpy(np.array(seg_w_labels)).type(torch.FloatTensor)
     return images, bboxes, radars, pngs, pngs_w, seg_labels, seg_w_labels
+
+
+def yolo_dataset_collate_all(batch):
+    images = []
+    bboxes = []
+    radars = []
+    pngs = []
+    pngs_w = []
+    seg_labels = []
+    seg_w_labels = []
+    radar_pc_features = []
+    radar_pc_labels = []
+
+    for img, box, radar, png, png_w, seg_label, seg_w_label, radar_pc_feature, radar_pc_label in batch:
+        images.append(img)
+        bboxes.append(box)
+        radars.append(radar)
+        pngs.append(png)
+        pngs_w.append(png_w)
+        seg_labels.append(seg_label)
+        seg_w_labels.append(seg_w_label)
+        radar_pc_features.append(radar_pc_feature)
+        radar_pc_labels.append(radar_pc_label)
+
+    images = torch.from_numpy(np.array(images)).type(torch.FloatTensor)
+    bboxes = [torch.from_numpy(ann).type(torch.FloatTensor) for ann in bboxes]
+    radars = torch.from_numpy(np.array(radars)).type(torch.FloatTensor)
+    pngs = torch.from_numpy(np.array(pngs)).long()
+    pngs_w = torch.from_numpy(np.array(pngs_w)).long()
+    seg_labels = torch.from_numpy(np.array(seg_labels)).type(torch.FloatTensor)
+    seg_w_labels = torch.from_numpy(np.array(seg_w_labels)).type(torch.FloatTensor)
+    radar_pc_features = torch.from_numpy(np.array(radar_pc_features, dtype=np.float32)).type(torch.FloatTensor).\
+        permute(0, 2, 1)
+    radar_pc_labels = torch.from_numpy(np.array(radar_pc_labels, dtype=np.int32)).type(torch.LongTensor)
+
+    return images, bboxes, radars, pngs, pngs_w, seg_labels, seg_w_labels, radar_pc_features, radar_pc_labels
 
 

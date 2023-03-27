@@ -7,10 +7,10 @@ matplotlib.use('Agg')
 import scipy.signal
 from matplotlib import pyplot as plt
 from torch.utils.tensorboard import SummaryWriter
-
+from sklearn.preprocessing import MinMaxScaler, normalize
 import shutil
 import numpy as np
-
+import pandas as pd
 from PIL import Image
 from tqdm import tqdm
 from .utils import cvtColor, preprocess_input, resize_image
@@ -81,9 +81,10 @@ class LossHistory():
 
 
 class EvalCallback():
-    def __init__(self, net, input_shape, class_names, num_classes, val_lines, log_dir, cuda, radar_path, local_rank,\
-                 map_out_path=".temp_map_out", max_boxes=100, confidence=0.05, nms_iou=0.5, letterbox_image=True,
-                 MINOVERLAP=0.5, eval_flag=True, period=1):
+    def __init__(self, net, input_shape, class_names, num_classes, val_lines, log_dir, cuda, radar_path, local_rank,
+                 radar_pc_seg_path, is_radar_pc_seg, radar_pc_seg_features, radar_pc_seg_label, radar_pc_num,
+                 map_out_path=".temp_map_out", max_boxes=100, confidence=0.05, nms_iou=0.5,
+                 letterbox_image=True, MINOVERLAP=0.5, eval_flag=True, period=1):
         super(EvalCallback, self).__init__()
 
         self.net = net
@@ -103,6 +104,11 @@ class EvalCallback():
         self.period = period
         self.radar_path = radar_path
         self.local_rank = local_rank
+        self.radar_pc_seg_path = radar_pc_seg_path
+        self.is_radar_pc_seg = is_radar_pc_seg
+        self.radar_pc_seg_features = radar_pc_seg_features
+        self.radar_pc_seg_label = radar_pc_seg_label
+        self.radar_pc_num = radar_pc_num
 
         self.maps = [0]
         self.epoches = [0]
@@ -137,7 +143,31 @@ class EvalCallback():
             # ---------------------------------------------------------#
             #   将图像输入网络当中进行预测！
             # ---------------------------------------------------------#
-            outputs = self.net(images, radar_data)[0]
+            if self.is_radar_pc_seg:
+                # -------------------------------- 麻烦的点云读取 ---------------------------------- #
+                radar_pc_file = pd.read_csv(os.path.join(self.radar_pc_seg_path, image_id + '.csv'), index_col=0)
+                radar_pc_features = radar_pc_file[self.radar_pc_seg_features]
+                radar_pc_labels = radar_pc_file[self.radar_pc_seg_label]
+
+                radar_pc_features = np.asarray(radar_pc_features)
+                radar_pc_labels = np.asarray(radar_pc_labels)
+
+                radar_pc_indexes = np.random.choice(radar_pc_features.shape[0], self.radar_pc_num, replace=True)
+
+                align_radar_pc_features = radar_pc_features[radar_pc_indexes]
+                align_radar_pc_labels = radar_pc_labels[radar_pc_indexes]
+                align_radar_pc_features = normalize(X=align_radar_pc_features, axis=0)
+                align_radar_pc_labels = align_radar_pc_labels
+
+                align_radar_pc_features = torch.from_numpy(np.array(align_radar_pc_features, dtype=np.float32)).type(
+                    torch.FloatTensor).unsqueeze(0).permute(0, 2, 1).cuda(self.local_rank)
+                align_radar_pc_labels = torch.from_numpy(np.array(align_radar_pc_labels, dtype=np.int32)).\
+                    type(torch.LongTensor).cuda(self.local_rank)
+                # --------------------------------------------------------------------------------- #
+
+                outputs = self.net(images, radar_data, align_radar_pc_features)[0]
+            else:
+                outputs = self.net(images, radar_data)[0]
             outputs = decode_outputs(outputs, self.input_shape, local_rank)
             # ---------------------------------------------------------#
             #   将预测框进行堆叠，然后进行非极大抑制
@@ -195,7 +225,7 @@ class EvalCallback():
                 radar_data = np.load(radar_path)['arr_0']
                 radar_data = torch.from_numpy(radar_data).type(torch.cuda.FloatTensor).unsqueeze(0)
 
-                image_id = os.path.basename(line[0]).split('.')[0]
+                image_id = name
                 # ------------------------------#
                 #   读取图像并转换成RGB图像
                 # ------------------------------#

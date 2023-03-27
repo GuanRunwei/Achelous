@@ -18,7 +18,7 @@ from loss.detection_loss import (ModelEMA, YOLOLoss, get_lr_scheduler,
 from utils.callbacks import LossHistory, EvalCallback
 from utils_seg.callbacks import EvalCallback as EvalCallback_seg
 from utils_seg_line.callbacks import EvalCallback as EvalCallback_seg_line
-from utils.dataloader import YoloDataset, yolo_dataset_collate
+from utils.dataloader import YoloDataset, yolo_dataset_collate, yolo_dataset_collate_all
 from utils.utils import get_classes, show_config
 from utils.utils_fit import fit_one_epoch
 from utils_seg.callbacks import LossHistory as LossHistory_seg
@@ -214,6 +214,31 @@ if __name__ == "__main__":
     # 水岸线分割数据集路径
     # ------------------------------------------------------------------#
     wl_seg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/waterline/SegmentationClassPNG/SegmentationClassPNG"
+
+    # ------------------------------------------------------------------#
+    # 是否需要训练毫米波雷达点云分割
+    # ------------------------------------------------------------------#
+    is_radar_pc_seg = True
+
+    pc_seg_model = 'pn'
+    # ------------------------------------------------------------------#
+    # 每个batch的点云数量
+    # ------------------------------------------------------------------#
+    radar_pc_num = 512
+
+    # ------------------------------------------------------------------#
+    # 毫米波雷达点云分割路径
+    # ------------------------------------------------------------------#
+    radar_pc_seg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/radar_0220/radar"
+
+    # ------------------------------------------------------------------#
+    # 毫米波雷达点云分割属性, 其中label表示雷达目标的语义标签
+    # ------------------------------------------------------------------#
+    radar_pc_seg_features = ['x', 'y', 'z', 'comp_velocity', 'rcs']
+    radar_pc_seg_label = ['label']
+
+    radar_pc_classes = 8
+    radar_pc_channels = len(radar_pc_seg_features)
     # ================================================================================================== #
 
     # ============================ segmentation hyperparameters ============================= #
@@ -265,7 +290,7 @@ if __name__ == "__main__":
             print(f"[{os.getpid()}] (rank = {rank}, local_rank = {local_rank}) training...")
             print("Gpu Device Count : ", ngpus_per_node)
     else:
-        device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         local_rank = 0
         rank = 0
 
@@ -275,10 +300,16 @@ if __name__ == "__main__":
     class_names, num_classes = get_classes(classes_path)
 
     # ------------------------------------------------------#
-    #   创建yolo模型
+    #   创建模型
     # ------------------------------------------------------#
-    model = Achelous3T(resolution=input_shape[0], num_det=num_classes, num_seg=num_classes_seg, phi=phi, backbone=backbone, neck=neck,
-                     nano_head=lightweight).to(device)
+    if is_radar_pc_seg:
+        model = Achelous(resolution=input_shape[0], num_det=num_classes, num_seg=num_classes_seg, phi=phi,
+                         backbone=backbone, neck=neck, nano_head=lightweight, pc_seg=pc_seg_model,
+                         pc_channels=radar_pc_channels, pc_classes=radar_pc_classes).to(device)
+    else:
+        model = Achelous3T(resolution=input_shape[0], num_det=num_classes, num_seg=num_classes_seg, phi=phi,
+                           backbone=backbone, neck=neck,
+                           nano_head=lightweight).to(device)
     weights_init(model)
     if model_path != '':
         # ------------------------------------------------------#
@@ -373,7 +404,7 @@ if __name__ == "__main__":
     num_val = len(val_lines)
 
     show_config(
-        backbone=backbone, neck=neck, lightweight_head=lightweight,
+        backbone=backbone, neck=neck, lightweight_head=lightweight, is_radar_pc_seg=is_radar_pc_seg,
         classes_path=classes_path, model_path=model_path, input_shape=input_shape, \
         Init_Epoch=Init_Epoch, Freeze_Epoch=Freeze_Epoch, UnFreeze_Epoch=UnFreeze_Epoch,
         Freeze_batch_size=Freeze_batch_size, Unfreeze_batch_size=Unfreeze_batch_size, Freeze_Train=Freeze_Train, \
@@ -472,19 +503,41 @@ if __name__ == "__main__":
         # ---------------------------------------#
         #   构建数据集加载器。
         # ---------------------------------------#
-        train_dataset = YoloDataset(annotation_lines=train_lines, input_shape=input_shape, num_classes=num_classes,
-                                    epoch_length=UnFreeze_Epoch, \
-                                    mosaic=False, mixup=False, mosaic_prob=0, mixup_prob=0,
-                                    train=False, special_aug_ratio=0, radar_root=radar_file_path,
-                                    num_classes_seg=num_classes_seg, seg_dataset_path=se_seg_path,
-                                    water_seg_dataset_path=wl_seg_path)
+        if is_radar_pc_seg:
+            train_dataset = YoloDataset(annotation_lines=train_lines, input_shape=input_shape, num_classes=num_classes,
+                                        epoch_length=UnFreeze_Epoch, \
+                                        mosaic=False, mixup=False, mosaic_prob=0, mixup_prob=0,
+                                        train=False, special_aug_ratio=0, radar_root=radar_file_path,
+                                        num_classes_seg=num_classes_seg, seg_dataset_path=se_seg_path,
+                                        water_seg_dataset_path=wl_seg_path, radar_pc_seg_dataset_path=radar_pc_seg_path,
+                                        is_radar_pc_seg=is_radar_pc_seg, radar_pc_seg_features=radar_pc_seg_features,
+                                        radar_pc_seg_label=radar_pc_seg_label, radar_pc_num=radar_pc_num)
 
-        val_dataset = YoloDataset(annotation_lines=val_lines, input_shape=input_shape, num_classes=num_classes,
-                                  epoch_length=UnFreeze_Epoch, \
-                                  mosaic=False, mixup=False, mosaic_prob=0, mixup_prob=0, train=False,
-                                  special_aug_ratio=0, radar_root=radar_file_path,
-                                  num_classes_seg=num_classes_seg, seg_dataset_path=se_seg_path,
-                                  water_seg_dataset_path=wl_seg_path)
+            val_dataset = YoloDataset(annotation_lines=val_lines, input_shape=input_shape, num_classes=num_classes,
+                                      epoch_length=UnFreeze_Epoch, \
+                                      mosaic=False, mixup=False, mosaic_prob=0, mixup_prob=0, train=False,
+                                      special_aug_ratio=0, radar_root=radar_file_path,
+                                      num_classes_seg=num_classes_seg, seg_dataset_path=se_seg_path,
+                                      water_seg_dataset_path=wl_seg_path, radar_pc_seg_dataset_path=radar_pc_seg_path,
+                                      is_radar_pc_seg=is_radar_pc_seg, radar_pc_seg_features=radar_pc_seg_features,
+                                      radar_pc_seg_label=radar_pc_seg_label, radar_pc_num=radar_pc_num)
+
+        else:
+            train_dataset = YoloDataset(annotation_lines=train_lines, input_shape=input_shape, num_classes=num_classes,
+                                        epoch_length=UnFreeze_Epoch, \
+                                        mosaic=False, mixup=False, mosaic_prob=0, mixup_prob=0,
+                                        train=False, special_aug_ratio=0, radar_root=radar_file_path,
+                                        num_classes_seg=num_classes_seg, seg_dataset_path=se_seg_path,
+                                        water_seg_dataset_path=wl_seg_path, radar_pc_seg_dataset_path=radar_pc_seg_path,
+                                        radar_pc_seg_features=[])
+
+            val_dataset = YoloDataset(annotation_lines=val_lines, input_shape=input_shape, num_classes=num_classes,
+                                      epoch_length=UnFreeze_Epoch, \
+                                      mosaic=False, mixup=False, mosaic_prob=0, mixup_prob=0, train=False,
+                                      special_aug_ratio=0, radar_root=radar_file_path,
+                                      num_classes_seg=num_classes_seg, seg_dataset_path=se_seg_path,
+                                      water_seg_dataset_path=wl_seg_path, radar_pc_seg_dataset_path='',
+                                      radar_pc_seg_features=[])
 
         if distributed:
             train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset, shuffle=True, )
@@ -499,25 +552,42 @@ if __name__ == "__main__":
         # ---------------------------------------#
         #   构建Dataloader。
         # ---------------------------------------#
-        gen = DataLoader(train_dataset, shuffle=shuffle, batch_size=batch_size, num_workers=num_workers,
-                         pin_memory=True,
-                         drop_last=True, collate_fn=yolo_dataset_collate, sampler=train_sampler)
-        gen_val = DataLoader(val_dataset, shuffle=shuffle, batch_size=batch_size, num_workers=num_workers,
+        if is_radar_pc_seg:
+            gen = DataLoader(train_dataset, shuffle=shuffle, batch_size=batch_size, num_workers=num_workers,
                              pin_memory=True,
-                             drop_last=True, collate_fn=yolo_dataset_collate, sampler=val_sampler)
+                             drop_last=True, collate_fn=yolo_dataset_collate_all, sampler=train_sampler)
+            gen_val = DataLoader(val_dataset, shuffle=shuffle, batch_size=batch_size, num_workers=num_workers,
+                                 pin_memory=True,
+                                 drop_last=True, collate_fn=yolo_dataset_collate_all, sampler=val_sampler)
+
+        else:
+            gen = DataLoader(train_dataset, shuffle=shuffle, batch_size=batch_size, num_workers=num_workers,
+                             pin_memory=True,
+                             drop_last=True, collate_fn=yolo_dataset_collate, sampler=train_sampler)
+            gen_val = DataLoader(val_dataset, shuffle=shuffle, batch_size=batch_size, num_workers=num_workers,
+                                 pin_memory=True,
+                                 drop_last=True, collate_fn=yolo_dataset_collate, sampler=val_sampler)
 
         # ----------------------#
         #   记录eval的map曲线
         # ----------------------#
         eval_callback = EvalCallback(model, input_shape, class_names, num_classes, val_lines, log_dir, Cuda, \
                                      eval_flag=eval_flag, period=eval_period, radar_path=radar_file_path,
-                                     local_rank=local_rank)
+                                     radar_pc_seg_path=radar_pc_seg_path, local_rank=local_rank, is_radar_pc_seg=is_radar_pc_seg,
+                                     radar_pc_seg_features=radar_pc_seg_features, radar_pc_seg_label=radar_pc_seg_label,
+                                     radar_pc_num=radar_pc_num)
         eval_callback_seg = EvalCallback_seg(model, input_shape, num_classes_seg, val_lines, se_seg_path,
                                              log_dir_seg, Cuda, eval_flag=eval_flag, period=eval_period,
-                                             radar_path=radar_file_path, local_rank=local_rank, jpg_path=jpg_path)
+                                             radar_path=radar_file_path, radar_pc_seg_path=radar_pc_seg_path,
+                                             local_rank=local_rank, jpg_path=jpg_path, is_radar_pc_seg=is_radar_pc_seg,
+                                             radar_pc_seg_features=radar_pc_seg_features,
+                                             radar_pc_seg_label=radar_pc_seg_label, radar_pc_num=radar_pc_num)
         eval_callback_seg_wl = EvalCallback_seg_line(model, input_shape, 2, val_lines, wl_seg_path,
                                              log_dir_seg_wl, Cuda, eval_flag=eval_flag, period=eval_period,
-                                             radar_path=radar_file_path, local_rank=local_rank, jpg_path=jpg_path)
+                                             radar_path=radar_file_path, local_rank=local_rank,
+                                             radar_pc_seg_path=radar_pc_seg_path, jpg_path=jpg_path, is_radar_pc_seg=is_radar_pc_seg,
+                                                     radar_pc_seg_features=radar_pc_seg_features,
+                                                     radar_pc_seg_label=radar_pc_seg_label, radar_pc_num=radar_pc_num)
 
         # ---------------------------------------#
         #   开始模型训练123
@@ -575,10 +645,10 @@ if __name__ == "__main__":
 
             set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
 
-            fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history_seg, eval_callback,
+            fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history_seg, loss_history_seg_wl, eval_callback,
                           eval_callback_seg, eval_callback_seg_wl, optimizer, epoch, epoch_step, epoch_step_val, gen, gen_val, UnFreeze_Epoch,
                           Cuda, fp16, scaler, save_period, save_dir,
-                          dice_loss, focal_loss, cls_weights, cls_weights_wl, num_classes_seg, local_rank)
+                          dice_loss, focal_loss, cls_weights, cls_weights_wl, num_classes_seg, local_rank, is_radar_pc_seg)
 
             if distributed:
                 dist.barrier()
@@ -586,3 +656,4 @@ if __name__ == "__main__":
         if local_rank >= 0:
             loss_history.writer.close()
             loss_history_seg.writer.close()
+            loss_history_seg_wl.writer.close()
