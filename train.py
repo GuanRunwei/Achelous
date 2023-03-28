@@ -23,6 +23,8 @@ from utils.utils import get_classes, show_config
 from utils.utils_fit import fit_one_epoch
 from utils_seg.callbacks import LossHistory as LossHistory_seg
 from utils_seg_line.callbacks import LossHistory as LossHistory_seg_line
+from utils_seg_pc.callbacks import LossHistory as LossHistory_seg_pc
+from utils_seg_pc.callbacks import EvalCallback as EvalCallback_seg_pc
 
 
 if __name__ == "__main__":
@@ -165,7 +167,7 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------#
     #   save_period     多少个epoch保存一次权值
     # ------------------------------------------------------------------#
-    save_period = 10
+    save_period = 5
     # ------------------------------------------------------------------#
     #   save_dir        权值与日志文件保存的文件夹
     # ------------------------------------------------------------------#
@@ -274,6 +276,7 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------#
     save_dir_seg = 'logs_seg'
     save_dir_seg_wl = 'logs_seg_line'
+    save_dir_seg_pc = 'logs_seg_pc'
 
     # ======================================================================================= #
 
@@ -351,9 +354,11 @@ if __name__ == "__main__":
     log_dir = os.path.join(save_dir, "loss_" + str(time_str))
     log_dir_seg = os.path.join(save_dir_seg, "loss_" + str(time_str))
     log_dir_seg_wl = os.path.join(save_dir_seg_wl, "loss_" + str(time_str))
+    log_dir_seg_pc = os.path.join(save_dir_seg_pc, "loss_" + str(time_str))
     loss_history = LossHistory(log_dir, model, input_shape=input_shape)
     loss_history_seg = LossHistory_seg(log_dir_seg, model, input_shape=input_shape)
     loss_history_seg_wl = LossHistory_seg_line(log_dir_seg_wl, model, input_shape=input_shape)
+    loss_history_seg_pc = LossHistory_seg_pc(log_dir_seg_pc, model, input_shape=input_shape)
 
     # ------------------------------------------------------------------#
     #   torch 1.2不支持amp，建议使用torch 1.7.1及以上正确使用fp16
@@ -430,7 +435,6 @@ if __name__ == "__main__":
         print("\033[1;33;44m[Warning] 由于总训练步长为%d，小于建议总步长%d，建议设置总世代为%d。\033[0m" % (
             total_step, wanted_step, wanted_epoch))
 
-
     # ------------------------------------------------------#
     #   主干特征提取网络特征通用，冻结训练可以加快训练速度
     #   也可以在训练初期防止权值被破坏。
@@ -490,9 +494,6 @@ if __name__ == "__main__":
         # ---------------------------------------#
         epoch_step = num_train // batch_size
         epoch_step_val = num_val // batch_size
-
-        # epoch_step_seg = num_train_seg // batch_size
-        # epoch_step_val_seg = num_val_seg // batch_size
 
         if epoch_step == 0 or epoch_step_val == 0:
             raise ValueError("数据集过小，无法继续进行训练，请扩充数据集。")
@@ -588,6 +589,13 @@ if __name__ == "__main__":
                                              radar_pc_seg_path=radar_pc_seg_path, jpg_path=jpg_path, is_radar_pc_seg=is_radar_pc_seg,
                                                      radar_pc_seg_features=radar_pc_seg_features,
                                                      radar_pc_seg_label=radar_pc_seg_label, radar_pc_num=radar_pc_num)
+        eval_callback_seg_pc = EvalCallback_seg_pc(model, input_shape, 2, val_lines, wl_seg_path,
+                                                     log_dir_seg_wl, Cuda, eval_flag=eval_flag, period=eval_period,
+                                                     radar_path=radar_file_path, local_rank=local_rank,
+                                                     radar_pc_seg_path=radar_pc_seg_path, jpg_path=jpg_path,
+                                                     is_radar_pc_seg=is_radar_pc_seg,
+                                                     radar_pc_seg_features=radar_pc_seg_features,
+                                                     radar_pc_seg_label=radar_pc_seg_label, radar_pc_num=radar_pc_num)
 
         # ---------------------------------------#
         #   开始模型训练123
@@ -609,6 +617,7 @@ if __name__ == "__main__":
                 lr_limit_min = 3e-4 if optimizer_type == 'adam' else 5e-4
                 Init_lr_fit = min(max(batch_size / nbs * Init_lr, lr_limit_min), lr_limit_max)
                 Min_lr_fit = min(max(batch_size / nbs * Min_lr, lr_limit_min * 1e-2), lr_limit_max * 1e-2)
+
                 # ---------------------------------------#
                 #   获得学习率下降的公式
                 # ---------------------------------------#
@@ -645,10 +654,11 @@ if __name__ == "__main__":
 
             set_optimizer_lr(optimizer, lr_scheduler_func, epoch)
 
-            fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history_seg, loss_history_seg_wl, eval_callback,
-                          eval_callback_seg, eval_callback_seg_wl, optimizer, epoch, epoch_step, epoch_step_val, gen, gen_val, UnFreeze_Epoch,
-                          Cuda, fp16, scaler, save_period, save_dir,
-                          dice_loss, focal_loss, cls_weights, cls_weights_wl, num_classes_seg, local_rank, is_radar_pc_seg)
+            fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history_seg, loss_history_seg_wl,
+                          loss_history_seg_pc, eval_callback, eval_callback_seg, eval_callback_seg_wl,
+                          eval_callback_seg_pc, optimizer, epoch, epoch_step, epoch_step_val, gen, gen_val,
+                          UnFreeze_Epoch, Cuda, fp16, scaler, save_period, save_dir, dice_loss, focal_loss, cls_weights,
+                          cls_weights_wl, num_classes_seg, local_rank, is_radar_pc_seg)
 
             if distributed:
                 dist.barrier()

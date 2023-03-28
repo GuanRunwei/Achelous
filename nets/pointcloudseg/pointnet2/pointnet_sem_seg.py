@@ -56,7 +56,6 @@ if __name__ == '__main__':
 
     output_map = model(xyz)
     print(output_map[0].shape)
-    print(output_map[1].shape)
 
     macs, params = profile(model, inputs=xyz.unsqueeze(0))
     macs *= 2

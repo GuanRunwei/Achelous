@@ -241,5 +241,5 @@ class EvalCallback():
             plt.cla()
             plt.close("all")
 
-            print("Get miou done.")
+            print("Get miou of semantic segmentation done.")
             shutil.rmtree(self.miou_out_path)

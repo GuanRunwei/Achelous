@@ -8,6 +8,7 @@ from torchinfo import summary
 from backbone.vision.ImageEncoder import *
 from neck.spp import *
 from backbone.conv_utils.normal_conv import *
+from backbone.conv_utils.ghost_conv import *
 from backbone.attention_modules.shuffle_attention import *
 from backbone.vision.mobilevit_modules.mobilevit import mobilevit_xxs, mobilevit_xs, mobilevit_s
 from backbone.vision.edgenext_modules.model import edgenext_xx_small, edgenext_x_small, edgenext_small
