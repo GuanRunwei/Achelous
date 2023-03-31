@@ -596,6 +596,7 @@ class achelous(object):
             if predicted_class not in class_names:
                 continue
 
+
             f.write("%s %s %s %s %s %s\n" % (
             predicted_class, score[:6], str(int(left)), str(int(top)), str(int(right)), str(int(bottom))))
 
