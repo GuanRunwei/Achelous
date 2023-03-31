@@ -312,11 +312,13 @@ def fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history
         loss_history.append_loss(epoch + 1, total_loss_det / epoch_step, val_loss_det / epoch_step_val)
         loss_history_seg.append_loss(epoch + 1, total_loss_seg / epoch_step, val_loss_seg / epoch_step_val)
         loss_history_seg_wl.append_loss(epoch + 1, total_loss_seg_w / epoch_step, val_loss_seg_w / epoch_step_val)
-        loss_history_seg_pc.append_loss(epoch + 1, total_loss_seg_pc / epoch_step, val_loss_seg_pc / epoch_step_val)
+        if is_radar_pc_seg:
+            loss_history_seg_pc.append_loss(epoch + 1, total_loss_seg_pc / epoch_step, val_loss_seg_pc / epoch_step_val)
         eval_callback.on_epoch_end(epoch + 1, model_train_eval)
         eval_callback_seg.on_epoch_end(epoch + 1, model_train_eval)
         eval_callback_seg_w.on_epoch_end(epoch + 1, model_train_eval)
-        eval_callback_seg_pc.on_epoch_end(epoch + 1, model_train_eval)
+        if is_radar_pc_seg:
+            eval_callback_seg_pc.on_epoch_end(epoch + 1, model_train_eval)
         print('Epoch:' + str(epoch + 1) + '/' + str(Epoch))
         if is_radar_pc_seg:
             print(

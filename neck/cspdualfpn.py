@@ -130,20 +130,20 @@ class CSPDualFPN(nn.Module):
 
         # 176, 16, 16 -> 192, 32, 32
         self.upsample_5_to_4 = Upsample(in_channels=self.channel_widths[-1], out_channels=self.channel_widths[-2])
-        self.ghost_5_to_4 = CSPLayer(in_channels=self.channel_widths[-2] * 2, out_channels=self.channel_widths[-2] * 2)
+        self.ghost_5_to_4 = CSPLayer(in_channels=self.channel_widths[-2] * 2, out_channels=self.channel_widths[-2])
 
         # 192, 32, 32 -> 96, 64, 64
-        self.upsample_4_to_3 = Upsample(in_channels=self.channel_widths[-2] * 2, out_channels=self.channel_widths[-3])
-        self.ghost_4_to_3 = CSPLayer(in_channels=self.channel_widths[-3] * 2, out_channels=self.channel_widths[-3] * 2)
+        self.upsample_4_to_3 = Upsample(in_channels=self.channel_widths[-2], out_channels=self.channel_widths[-3])
+        self.ghost_4_to_3 = CSPLayer(in_channels=self.channel_widths[-3] * 2, out_channels=self.channel_widths[-3])
 
         # 96, 64, 64 -> lane-segmentation 96, 64, 64
-        self.stage_3_lane_seg = ShuffleAttention(channel=self.channel_widths[-3] * 2, G=4)
+        self.stage_3_lane_seg = ShuffleAttention(channel=self.channel_widths[-3], G=4)
         # 48, 64, 64 -> semantic-segmentation 96, 64, 64
-        self.stage_3_semantic_seg = ShuffleAttention(channel=self.channel_widths[-3] * 2, G=4)
+        self.stage_3_semantic_seg = ShuffleAttention(channel=self.channel_widths[-3], G=4)
 
         # ======================================= WaterLine Segmentation ========================================= #
         # lane-segmentation 96, 64, 64 -> 48, 128, 128
-        self.lane_seg_3_to_2 = Upsample(in_channels=self.channel_widths[-3] * 2, out_channels=self.channel_widths[-3])
+        self.lane_seg_3_to_2 = Upsample(in_channels=self.channel_widths[-3], out_channels=self.channel_widths[-3])
         self.lane_seg_ghost_3_to_2 = Bottleneck(in_channels=self.channel_widths[-3], out_channels=self.channel_widths[-3])
 
         # lane-segmentation 48, 128, 128 -> 32, 256, 256
@@ -160,7 +160,7 @@ class CSPDualFPN(nn.Module):
 
         # ======================================= Semantic Segmentation ========================================== #
         # semantic-segmentation 96, 64, 64 -> 48, 128, 128
-        self.se_seg_3_to_2 = Upsample(in_channels=self.channel_widths[-3] * 2, out_channels=self.channel_widths[-3])
+        self.se_seg_3_to_2 = Upsample(in_channels=self.channel_widths[-3], out_channels=self.channel_widths[-3])
         self.se_seg_ghost_3_to_2 = Bottleneck(in_channels=self.channel_widths[-3], out_channels=self.channel_widths[-3])
 
         # semantic-segmentation 48, 128, 128 -> 32, 256, 256
@@ -221,7 +221,7 @@ class CSPDualFPN(nn.Module):
         se_seg_output = self.se_seg_head(fpn_stage0_se)
         # ===================================================================== #
 
-        return se_seg_output, lane_seg_output, (map_stage5, map_stage4, map_stage3)
+        return se_seg_output, lane_seg_output, (fpn_stage5+map_stage5, fpn_stage4+map_stage4, fpn_stage3+map_stage3)
 
 
 if __name__ == '__main__':
