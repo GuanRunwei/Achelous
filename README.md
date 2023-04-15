@@ -96,13 +96,13 @@ S2 channels: [32, 64, 144, 288]
 | EF-GDF-PN-S2 | 40.5 | 70.8 | 44.5 | 70.3 | 99.1 | 71.7 | 58.4 |
 | EV-GDF-PN-S2 | 40.3 | 69.7 | 43.8 | 74.1 | 99.5 | 67.9 | 58.3 |
 | MV-GDF-PN-S2 | 45.0 | 79.4 | 48.8 | 73.8 | 99.6 | 70.8 | 58.5 |
----
+
 FPSe: FPS on Jetson AGX Xavier \
 FPSg: FPS on RTX A4000 GPU \
 mIoU-t: mIoU of targets \
 mIoU-d: mIoU of drivable area \
 mIoU-w: mIoU of waterline segmentation \
 mIoU-pc: mIoU of point clouds
----
+
 
 ## Implementation
