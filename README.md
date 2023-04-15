@@ -64,7 +64,7 @@ Based on a monocular camera and a 4D mmWave radar,
 
 
 ---
-### Performance
+### Performances
 input size: 320 ×320 \
 point cloud number per sample: 512 \
 Three model size: S0, S1, S2 \
