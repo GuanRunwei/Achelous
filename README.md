@@ -1,7 +1,7 @@
 # Achelous
 Achelous: A Fast Unified Water-surface Panoptic Perception Framework based on Fusion of Monocular Camera and 4D mmWave Radar
 <div  align="center">    
-  <img src="icons/Achelous.png" width = "300" height = "200" alt="图片名称" align=center />
+  <img src="icons/Achelous.png" width = "300" height = "300" alt="Achelous" align=center />
 </div>
 
 ---
