@@ -119,3 +119,10 @@ mIoU-pc: mIoU of point clouds
 
 
 ## Implementation
+
+---
+
+## Authors Affiliations:
+- University of Liverpool
+- Institute of Deep Perception Technology, JITRI
+- Xi'an Jiaotong-Liverpool University
