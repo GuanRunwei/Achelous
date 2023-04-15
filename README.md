@@ -6,7 +6,7 @@
 
 Achelous: A Fast Unified Water-surface Panoptic Perception Framework based on Fusion of Monocular Camera and 4D mmWave Radar
 ---
-## Achelous's ability
+## The Power of Achelous
 Based on a monocular camera and a 4D mmWave radar,
 - [x] Object detection (anchor-free)
 - [x] Object semantic segmentation
