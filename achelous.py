@@ -6,7 +6,7 @@ import copy
 import numpy as np
 import torch
 import torch.nn as nn
-from PIL import ImageDraw, ImageFont
+from PIL import ImageDraw, ImageFont, ImageEnhance
 from sklearn.preprocessing import MinMaxScaler, normalize
 from nets.Achelous import Achelous, Achelous3T
 from utils.utils import (cvtColor, get_classes, preprocess_input, resize_image,
@@ -28,7 +28,7 @@ class achelous(object):
         #   验证集损失较低不代表mAP较高，仅代表该权值在验证集上泛化性能较好。
         #   如果出现shape不匹配，同时要注意训练时的model_path和classes_path参数的修改
         # --------------------------------------------------------------------------#
-        "model_path"        : "logs/ep030-loss1.084-det_val_loss4.400-seg_val_loss0.282-seg_wl_val_loss0.275-seg_pc_val_loss2.717.pth",
+        "model_path"        : "model_data/mv_gdf_nano_ps_s0.pth",
         "radar_root"        : "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/VOCradar320",
         "radar_pc_root"     : "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/radar_0220/radar",
         "classes_path"      : 'model_data/waterscenes_benchmark.txt',
@@ -47,7 +47,7 @@ class achelous(object):
         # ---------------------------------------------------------------------#
         #   只有得分大于置信度的预测框会被保留下来
         # ---------------------------------------------------------------------#
-        "confidence": 0.5,
+        "confidence": 0.35,
         # ---------------------------------------------------------------------#
         #   非极大抑制所用到的nms_iou大小
         # ---------------------------------------------------------------------#
@@ -59,11 +59,11 @@ class achelous(object):
         # ---------------------------------------------------------------------#
         #   backbone
         # ---------------------------------------------------------------------#
-        "backbone": 'en',
+        "backbone": 'mv',
         # ---------------------------------------------------------------------#
         #   neck
         # ---------------------------------------------------------------------#
-        "neck": 'cdf',
+        "neck": 'gdf',
         # ---------------------------------------------------------------------#
         #   detection head
         # ---------------------------------------------------------------------#
@@ -71,6 +71,7 @@ class achelous(object):
         # ---------------------------------------------------------------------#
         #   radar point semantic segmentation 模型
         # ---------------------------------------------------------------------#
+        "is_radar_seg": True,
         "radar_pc": 'pn',
         # ---------------------------------------------------------------------#
         #   radar point semantic segmentation 输入特征数量
@@ -87,7 +88,7 @@ class achelous(object):
         #   该变量用于控制是否使用letterbox_image对输入图像进行不失真的resize，
         #   在多次测试后，发现关闭letterbox_image直接resize的效果更好
         # ---------------------------------------------------------------------#
-        "letterbox_image": False,
+        "letterbox_image": True,
         # -------------------------------#
         #   是否使用Cuda
         #   没有GPU可以设置成False
@@ -145,13 +146,19 @@ class achelous(object):
     #   生成模型
     # ---------------------------------------------------#
     def generate(self, onnx=False):
-        if len(self.radar_pc_root) == 0:
-            self.net = Achelous3T(num_det=self.num_classes, num_seg=self.num_classes_seg, radar_channels=self.radar_channels,
-                                  backbone=self.backbone, neck=self.neck, nano_head=self.nano, resolution=self.input_shape[0], phi=self.phi)
+        if self.is_radar_seg:
+            self.net = Achelous(num_det=self.num_classes, num_seg=self.num_classes_seg,
+                                radar_channels=self.radar_channels,
+                                backbone=self.backbone, neck=self.neck, nano_head=self.nano,
+                                resolution=self.input_shape[0],
+                                pc_seg=self.radar_pc, pc_classes=self.radar_pc_classes,
+                                pc_channels=self.radar_pc_features_num, phi=self.phi)
+
         else:
-            self.net = Achelous(num_det=self.num_classes, num_seg=self.num_classes_seg, radar_channels=self.radar_channels,
-                                backbone=self.backbone, neck=self.neck, nano_head=self.nano, resolution=self.input_shape[0],
-                                pc_seg=self.radar_pc, pc_classes=self.radar_pc_classes, pc_channels=self.radar_pc_features_num, phi=self.phi)
+            self.net = Achelous3T(num_det=self.num_classes, num_seg=self.num_classes_seg,
+                                  radar_channels=self.radar_channels,
+                                  backbone=self.backbone, neck=self.neck, nano_head=self.nano,
+                                  resolution=self.input_shape[0], phi=self.phi)
 
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.net.load_state_dict(torch.load(self.model_path, map_location=device))
@@ -225,11 +232,12 @@ class achelous(object):
             # ---------------------------------------------------------#
             #   将图像输入网络当中进行预测！
             # ---------------------------------------------------------#
-            if len(self.radar_pc_root) == 0:
-                outputs, output_seg, output_seg_line = self.net(images, radar_data)
+            if self.is_radar_seg:
+                outputs, output_seg, output_seg_line, output_seg_pc = self.net(images, radar_data,
+                                                                               align_radar_pc_features)
                 outputs = decode_outputs(outputs, self.input_shape, 0)
             else:
-                outputs, output_seg, output_seg_line, output_seg_pc = self.net(images, radar_data, align_radar_pc_features)
+                outputs, output_seg, output_seg_line = self.net(images, radar_data)
                 outputs = decode_outputs(outputs, self.input_shape, 0)
 
             output_seg = output_seg[0]
@@ -290,8 +298,17 @@ class achelous(object):
             # ------------------------------------------------#
             #   将新图与原图及进行混合
             # ------------------------------------------------#
-            image = Image.blend(old_img, image, 0.35)
-            image = Image.blend(image, image_line, 0.35)
+            image = Image.blend(old_img, image, 0.45)
+            image = Image.blend(image, image_line, 0.3)
+
+            # contrast_enhancer = ImageEnhance.Contrast(image)
+            # # 传入调整系数1.2
+            # image = contrast_enhancer.enhance(1.1)
+
+            bright_enhancer = ImageEnhance.Brightness(image)
+            # 传入调整系数1.2
+            image = bright_enhancer.enhance(1.3)
+
 
             # ---------------------------------------------------------#
             #   将预测框进行堆叠，然后进行非极大抑制
@@ -595,7 +612,6 @@ class achelous(object):
             top, left, bottom, right = box
             if predicted_class not in class_names:
                 continue
-
 
             f.write("%s %s %s %s %s %s\n" % (
             predicted_class, score[:6], str(int(left)), str(int(top)), str(int(right)), str(int(bottom))))

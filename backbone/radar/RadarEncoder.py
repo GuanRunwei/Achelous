@@ -109,11 +109,6 @@ class RCNet(nn.Module):
         return x
 
 
-
-
-
-
-
 if __name__ == '__main__':
     input_map = torch.randn(1, 3, 416, 416)
     model = RCNet(in_channels=3)

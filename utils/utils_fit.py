@@ -145,7 +145,7 @@ def fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history
                     loss_seg = loss_seg + main_dice
                     logg_seg_w = loss_seg_w + main_dice_w
 
-                loss_det = yolo_loss(outputs, targets)
+                loss_det = yolo_loss(outputs, targets).cuda(local_rank)
 
                 mtl = HUncertainty(task_num=3)
                 mgda = MGDA()
@@ -154,7 +154,8 @@ def fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history
                     total_loss = mtl(loss_seg, logg_seg_w, loss_det) + loss_pc_seg
                     # total_loss = mgda.backward([loss_seg, logg_seg_w, loss_det, loss_pc_seg])
                 else:
-                    total_loss = mtl(loss_seg, logg_seg_w, loss_det)
+                    total_loss = loss_seg + logg_seg_w + loss_det
+                    # total_loss = mtl(loss_seg, logg_seg_w, loss_det)
                     # total_loss = mgda.backward([loss_seg, logg_seg_w, loss_det])
                 # -------------------------------------------------------------------------------- #
 
@@ -186,7 +187,7 @@ def fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history
                                 'se seg loss': total_loss_seg / (iteration + 1),
                                 'wl seg loss': total_loss_seg_w / (iteration + 1),
                                 'pc seg loss': total_loss_seg_pc / (iteration + 1),
-                                'total loss': total_loss / (iteration + 1),
+                                'total loss': total_loss.item() / (iteration + 1),
                                 'f score se': total_f_score / (iteration + 1),
                                 'f score wl': total_f_score_w / (iteration + 1),
                                 'lr': get_lr(optimizer)})
@@ -194,7 +195,7 @@ def fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history
                 pbar.set_postfix(**{'detection loss': total_loss_det / (iteration + 1),
                                     'se seg loss': total_loss_seg / (iteration + 1),
                                     'wl seg loss': total_loss_seg_w / (iteration + 1),
-                                    'total loss': total_loss / (iteration + 1),
+                                    'total loss': total_loss.item() / (iteration + 1),
                                     'f score se': total_f_score / (iteration + 1),
                                     'f score wl': total_f_score_w / (iteration + 1),
                                     'lr': get_lr(optimizer)})

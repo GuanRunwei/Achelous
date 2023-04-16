@@ -25,24 +25,43 @@ from utils_seg.callbacks import LossHistory as LossHistory_seg
 from utils_seg_line.callbacks import LossHistory as LossHistory_seg_line
 from utils_seg_pc.callbacks import LossHistory as LossHistory_seg_pc
 from utils_seg_pc.callbacks import EvalCallback as EvalCallback_seg_pc
+import argparse
 
 
 if __name__ == "__main__":
+    # =========== 参数解析实例 =========== #
+    parser = argparse.ArgumentParser()
+
+    # 添加参数解析
+    parser.add_argument("--cuda", type=bool, default=True)
+    parser.add_argument("--fp16", type=bool, default=True)
+    parser.add_argument("--is_pc", help="use pc seg", type=bool, default=False)
+    parser.add_argument("--backbone", type=str, default='en')
+    parser.add_argument("--neck", type=str, default='gdf')
+    parser.add_argument("--nd", type=bool, default=True)
+    parser.add_argument("--phi", type=str, default='S0')
+    parser.add_argument("--resolution", type=int, default=320)
+    parser.add_argument("--bs", type=int, default=32)
+    parser.add_argument("--epoch", type=int, default=100)
+    parser.add_argument("--lr_init", type=float, default=0.03)
+    parser.add_argument("--lr_decay", type=str, default=5e-4)
+    parser.add_argument("--opt", type=str, default='sgd')
+    parser.add_argument("--pc_num", type=int, default=512)
+    parser.add_argument("--nw", type=int, default=4)
+    parser.add_argument("--dice", type=bool, default=True)
+    parser.add_argument("--focal", type=bool, default=True)
+    parser.add_argument("--pc_model", type=str, default='pn')
+
+    args = parser.parse_args()
+
+    # ==================================== #
+
     # ---------------------------------#
     #   Cuda    是否使用Cuda
     #           没有GPU可以设置成False
     # ---------------------------------#
-    Cuda = True
-    # ---------------------------------------------------------------------#
-    #   distributed     用于指定是否使用单机多卡分布式运行
-    #                   终端指令仅支持Ubuntu。CUDA_VISIBLE_DEVICES用于在Ubuntu下指定显卡。
-    #                   Windows系统下默认使用DP模式调用所有显卡，不支持DDP。
-    #   DP模式：
-    #       设置            distributed = False
-    #       在终端中输入    CUDA_VISIBLE_DEVICES=0,1 python train.py
-    #   DDP模式：
-    #       设置            distributed = True
-    #       在终端中输入    CUDA_VISIBLE_DEVICES=0,1 python -m torch.distributed.launch --nproc_per_node=2 train.py
+    Cuda = args.cuda
+
     # ---------------------------------------------------------------------#
     distributed = False
     # ---------------------------------------------------------------------#
@@ -53,7 +72,7 @@ if __name__ == "__main__":
     #   fp16        是否使用混合精度训练
     #               可减少约一半的显存、需要pytorch1.7.1以上
     # ---------------------------------------------------------------------#
-    fp16 = True
+    fp16 = args.fp16
     # ---------------------------------------------------------------------#
     #   classes_path    指向model_data下的txt，与自己训练的数据集相关
     #                   训练前一定要修改classes_path，使其对应自己的数据集
@@ -64,26 +83,26 @@ if __name__ == "__main__":
     # ------------------------------------------------------#
     #   backbone (4 options): ef (EfficientFormer), en (EdgeNeXt), ev (EdgeViT), mv (MobileViT)
     # ------------------------------------------------------#
-    backbone = 'en'
+    backbone = args.backbone
 
     # ------------------------------------------------------#
     #   neck (2 options): gdf (Ghost-Dual-FPN), cdf (CSP-Dual-FPN)
     # ------------------------------------------------------#
-    neck = 'cdf'
+    neck = args.neck
 
     # ------------------------------------------------------#
     #   detection head (2 options): normal -> False, lightweight -> True
     # ------------------------------------------------------#
-    lightweight = True
+    lightweight = args.nd
 
     # ------------------------------------------------------#
     #   input_shape     all models support 320*320, all models except mobilevit support 416*416
     # ------------------------------------------------------#
-    input_shape = [320, 320]
+    input_shape = [args.resolution, args.resolution]
     # ------------------------------------------------------#
     #   The size of model, three options: S0, S1, S2
     # ------------------------------------------------------#
-    phi = 'S0'
+    phi = args.phi
     # ------------------------------------------------------#
 
     # ----------------------------------------------------------------------------------------------------------------------------#
@@ -133,7 +152,7 @@ if __name__ == "__main__":
     #   Unfreeze_batch_size     模型在解冻后的batch_size
     # ------------------------------------------------------------------#
     UnFreeze_Epoch = 100
-    Unfreeze_batch_size = 32
+    Unfreeze_batch_size = args.bs
     # ------------------------------------------------------------------#
     #   Freeze_Train    是否进行冻结训练
     #                   默认先冻结主干训练后解冻训练。
@@ -147,7 +166,7 @@ if __name__ == "__main__":
     #   Init_lr         模型的最大学习率
     #   Min_lr          模型的最小学习率，默认为最大学习率的0.01
     # ------------------------------------------------------------------#
-    Init_lr = 5e-2
+    Init_lr = args.lr_init
     Min_lr = Init_lr * 0.01
     # ------------------------------------------------------------------#
     #   optimizer_type  使用到的优化器种类，可选的有adam、sgd
@@ -157,13 +176,13 @@ if __name__ == "__main__":
     #   weight_decay    权值衰减，可防止过拟合
     #                   adam会导致weight_decay错误，使用adam时建议设置为0。
     # ------------------------------------------------------------------#
-    optimizer_type = "sgd"
+    optimizer_type = args.opt
     momentum = 0.937
     weight_decay = 5e-4
     # ------------------------------------------------------------------#
     #   lr_decay_type   使用到的学习率下降方式，可选的有step、cos
     # ------------------------------------------------------------------#
-    lr_decay_type = "cos"
+    lr_decay_type = args.lr_decay
     # ------------------------------------------------------------------#
     #   save_period     多少个epoch保存一次权值
     # ------------------------------------------------------------------#
@@ -188,7 +207,7 @@ if __name__ == "__main__":
     #                   开启后会加快数据读取速度，但是会占用更多内存
     #                   内存较小的电脑可以设置为2或者0
     # ------------------------------------------------------------------#
-    num_workers = 4
+    num_workers = args.nw
 
     # ========================================  Dataset Path =========================================== #
     # ----------------------------------------------------#
@@ -220,13 +239,13 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------#
     # 是否需要训练毫米波雷达点云分割
     # ------------------------------------------------------------------#
-    is_radar_pc_seg = False
+    is_radar_pc_seg = args.is_pc
 
-    pc_seg_model = 'pn'
+    pc_seg_model = args.pc_model
     # ------------------------------------------------------------------#
     # 每个batch的点云数量
     # ------------------------------------------------------------------#
-    radar_pc_num = 512
+    radar_pc_num = args.pc_num
 
     # ------------------------------------------------------------------#
     # 毫米波雷达点云分割路径
@@ -254,12 +273,12 @@ if __name__ == "__main__":
     #   种类少（几类）时，设置为True
     #   种类多（十几类）时，如果batch_size比较大（10以上），那么设置为True
     #   种类多（十几类）时，如果batch_size比较小（10以下），那么设置为False
-    dice_loss = True
+    dice_loss = args.dice
 
     # ------------------------------------------------------------------#
     #   是否使用focal loss来防止正负样本不平衡
     # ------------------------------------------------------------------#
-    focal_loss = True
+    focal_loss = args.focal
 
     # ------------------------------------------------------------------#
     #   是否给不同种类赋予不同的损失权值，默认是平衡的。
@@ -308,11 +327,11 @@ if __name__ == "__main__":
     if is_radar_pc_seg:
         model = Achelous(resolution=input_shape[0], num_det=num_classes, num_seg=num_classes_seg, phi=phi,
                          backbone=backbone, neck=neck, nano_head=lightweight, pc_seg=pc_seg_model,
-                         pc_channels=radar_pc_channels, pc_classes=radar_pc_classes).to(device)
+                         pc_channels=radar_pc_channels, pc_classes=radar_pc_classes).cuda(local_rank)
     else:
         model = Achelous3T(resolution=input_shape[0], num_det=num_classes, num_seg=num_classes_seg, phi=phi,
                            backbone=backbone, neck=neck,
-                           nano_head=lightweight).to(device)
+                           nano_head=lightweight).cuda(local_rank)
     weights_init(model)
     if model_path != '':
         # ------------------------------------------------------#
