@@ -3,10 +3,11 @@
 #   整合到了一个py文件中，通过指定mode进行模式的修改。
 # -----------------------------------------------------------------------#
 import time
-
+import os
 import cv2
 import numpy as np
 from PIL import Image
+from tqdm import tqdm
 
 from achelous import achelous
 
@@ -21,7 +22,7 @@ if __name__ == "__main__":
     #   'heatmap'           表示进行预测结果的热力图可视化，详情查看下方注释。
     #   'export_onnx'       表示将模型导出为onnx，需要pytorch1.7.1以上。
     # ----------------------------------------------------------------------------------------------------------#
-    mode = "predict"
+    mode = "export"
     # -------------------------------------------------------------------------#
     #   crop                指定了是否在单张图片预测后对目标进行截取
     #   count               指定了是否进行目标的计数
@@ -90,7 +91,20 @@ if __name__ == "__main__":
                 continue
             else:
                 r_image = yolo.detect_image(image, image_id, crop=crop, count=count)
-                r_image.show()
+                # r_image.show()
+
+    elif mode == "export":
+        img = input('Input image root:')
+        try:
+            image_list = os.listdir(img)
+            image_ids = [os.path.join(img, path) for path in image_list]
+        except:
+            print('Open Error! Try again!')
+        else:
+            for i in tqdm(range(len(image_list))):
+                image_id = image_list[i]
+                image = Image.open(image_ids[i])
+                r_image = yolo.detect_image(image, image_id[-20:-4], crop=crop, count=count, export_all=True)
 
     elif mode == "video":
         capture = cv2.VideoCapture(video_path)

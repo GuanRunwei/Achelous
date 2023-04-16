@@ -6,6 +6,7 @@ import copy
 import numpy as np
 import torch
 import torch.nn as nn
+import matplotlib.pyplot as plt
 from PIL import ImageDraw, ImageFont, ImageEnhance
 from sklearn.preprocessing import MinMaxScaler, normalize
 from nets.Achelous import Achelous, Achelous3T
@@ -29,9 +30,10 @@ class achelous(object):
         #   如果出现shape不匹配，同时要注意训练时的model_path和classes_path参数的修改
         # --------------------------------------------------------------------------#
         "model_path"        : "model_data/mv_gdf_nano_ps_s0.pth",
-        "radar_root"        : "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/VOCradar320",
-        "radar_pc_root"     : "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/radar_0220/radar",
+        "radar_root"        : "E:/dataset_collection/WaterScenes/WaterScenes_new/VOCradar320/VOCradar320",
+        "radar_pc_root"     : "E:/dataset_collection/WaterScenes/WaterScenes_new/radar/radar_0220/radar",
         "classes_path"      : 'model_data/waterscenes_benchmark.txt',
+        "export_path"       : 'export_results',
         # ---------------------------------------------------------------------#
         #   输入图片的大小，必须为32的倍数。
         # ---------------------------------------------------------------------#
@@ -84,6 +86,7 @@ class achelous(object):
         #   radar point semantic segmentation 类别数量
         # ---------------------------------------------------------------------#
         "radar_pc_classes": 8,
+        "radar_pc_cls_color": {0:'b', 1:'g', 2:'r', 3:'m', 4:'y', 5:'orange', 6:'violet', 7:'peru'},
         # ---------------------------------------------------------------------#
         #   该变量用于控制是否使用letterbox_image对输入图像进行不失真的resize，
         #   在多次测试后，发现关闭letterbox_image直接resize的效果更好
@@ -172,7 +175,7 @@ class achelous(object):
     # ---------------------------------------------------#
     #   检测图片
     # ---------------------------------------------------#
-    def detect_image(self, image, image_id, crop=False, count=False):
+    def detect_image(self, image, image_id, crop=False, count=False, export_all=False):
         # ---------------------------------------------------#
         #   获得输入图片的高和宽
         # ---------------------------------------------------#
@@ -209,10 +212,24 @@ class achelous(object):
         radar_pc_features = radar_pc_file[self.radar_pc_seg_features]
         radar_pc_labels = radar_pc_file[self.radar_pc_seg_labels]
 
-        radar_pc_features = np.asarray(radar_pc_features)
-        radar_pc_labels = np.asarray(radar_pc_labels)
+        # --------------------- 投影到相机平面 ------------------------- #
+        radar_pc_u = radar_pc_file[['u']]
+        radar_pc_v = radar_pc_file[['v']]
+        radar_pc_power = radar_pc_file[['rcs']]
 
         radar_pc_indexes = np.random.choice(radar_pc_features.shape[0], self.radar_pc_align_num, replace=True)
+
+        radar_pc_u = np.asarray(radar_pc_u)
+        radar_pc_v = np.asarray(radar_pc_v)
+        radar_pc_power = np.asarray(radar_pc_power)
+        radar_pc_u = radar_pc_u[radar_pc_indexes]
+        radar_pc_v = radar_pc_v[radar_pc_indexes]
+        radar_pc_power = radar_pc_power[radar_pc_indexes]
+
+        radar_uv = np.concatenate([radar_pc_u, radar_pc_v], axis=1)
+
+        radar_pc_features = np.asarray(radar_pc_features)
+        radar_pc_labels = np.asarray(radar_pc_labels)
 
         align_radar_pc_features = radar_pc_features[radar_pc_indexes]
         align_radar_pc_labels = radar_pc_labels[radar_pc_indexes]
@@ -236,6 +253,21 @@ class achelous(object):
                 outputs, output_seg, output_seg_line, output_seg_pc = self.net(images, radar_data,
                                                                                align_radar_pc_features)
                 outputs = decode_outputs(outputs, self.input_shape, 0)
+
+                output_seg_pc = output_seg_pc[0]
+                output_seg_pc_cls = torch.argmax(output_seg_pc, dim=1).unsqueeze(1)
+                # output_seg_pc_cls = np.array([[self.radar_pc_cls_color[key.item()]] for key in output_seg_pc_cls])
+
+
+
+
+                output_seg_pc_collections = np.concatenate([radar_pc_u, radar_pc_v, radar_pc_power,
+                                                            output_seg_pc_cls.cpu().numpy()], axis=1)
+
+                output_seg_pc_collections = np.unique(output_seg_pc_collections, axis=0)
+
+                fig = plt.figure()
+                plt.scatter(x=output_seg_pc_collections[:, 0], y=output_seg_pc_collections[:, 1], s=output_seg_pc_collections[:, 2], c=output_seg_pc_collections[:, 3], alpha=0.95)
             else:
                 outputs, output_seg, output_seg_line = self.net(images, radar_data)
                 outputs = decode_outputs(outputs, self.input_shape, 0)
@@ -380,6 +412,10 @@ class achelous(object):
             label_size = draw.textsize(label, font)
             label = label.encode('utf-8')
             print(label, top, left, bottom, right)
+            # if export_all is False:
+            #     print(label, top, left, bottom, right)
+            # else:
+            #     continue
 
             if top - label_size[1] >= 0:
                 text_origin = np.array([left, top - label_size[1]])
@@ -390,8 +426,21 @@ class achelous(object):
                 draw.rectangle([left + i, top + i, right - i, bottom - i], outline=self.colors[c])
             draw.rectangle([tuple(text_origin), tuple(text_origin + label_size)], fill=self.colors[c])
             draw.text(text_origin, str(label, 'UTF-8'), fill=(0, 0, 0), font=font)
-            del draw
+            # del draw
 
+        if export_all is False:
+            plt.xticks([])
+            plt.yticks([])
+            plt.axis('off')
+            plt.imshow(image)
+            plt.show()
+
+        else:
+            plt.axis('off')
+            plt.xticks([])
+            plt.yticks([])
+            plt.imshow(image)
+            plt.savefig("export_results/" + image_id+".jpg", bbox_inches='tight', pad_inches=0)
         return image
 
     def get_FPS(self, image, image_id, test_interval):
