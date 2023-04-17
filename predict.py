@@ -16,13 +16,15 @@ if __name__ == "__main__":
     # ----------------------------------------------------------------------------------------------------------#
     #   mode用于指定测试的模式：
     #   'predict'           表示单张图片预测，如果想对预测过程进行修改，如保存图片，截取对象等，可以先看下方详细的注释
-    #   'video'             表示视频检测，可调用摄像头或者视频进行检测，详情查看下方注释。
-    #   'fps'               表示测试fps，使用的图片是img里面的street.jpg，详情查看下方注释。
-    #   'dir_predict'       表示遍历文件夹进行检测并保存。默认遍历img文件夹，保存img_out文件夹，详情查看下方注释。
+    #   'export'       表示遍历文件夹进行检测并保存。默认遍历img文件夹，保存img_out文件夹，详情查看下方注释。
     #   'heatmap'           表示进行预测结果的热力图可视化，详情查看下方注释。
     #   'export_onnx'       表示将模型导出为onnx，需要pytorch1.7.1以上。
     # ----------------------------------------------------------------------------------------------------------#
+<<<<<<< HEAD
     mode = "export"
+=======
+    mode = "heatmap"
+>>>>>>> 212d23a (add evaluation functions of export and heatmap)
     # -------------------------------------------------------------------------#
     #   crop                指定了是否在单张图片预测后对目标进行截取
     #   count               指定了是否进行目标的计数
@@ -92,6 +94,7 @@ if __name__ == "__main__":
             else:
                 r_image = yolo.detect_image(image, image_id, crop=crop, count=count)
                 # r_image.show()
+<<<<<<< HEAD
 
     elif mode == "export":
         img = input('Input image root:')
@@ -105,58 +108,21 @@ if __name__ == "__main__":
                 image_id = image_list[i]
                 image = Image.open(image_ids[i])
                 r_image = yolo.detect_image(image, image_id[-20:-4], crop=crop, count=count, export_all=True)
+=======
+>>>>>>> 212d23a (add evaluation functions of export and heatmap)
 
-    elif mode == "video":
-        capture = cv2.VideoCapture(video_path)
-        if video_save_path != "":
-            fourcc = cv2.VideoWriter_fourcc(*'XVID')
-            size = (int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
-            out = cv2.VideoWriter(video_save_path, fourcc, video_fps, size)
-
-        ref, frame = capture.read()
-        if not ref:
-            raise ValueError("未能正确读取摄像头（视频），请注意是否正确安装摄像头（是否正确填写视频路径）。")
-
-        fps = 0.0
-        while (True):
-            t1 = time.time()
-            # 读取某一帧
-            ref, frame = capture.read()
-            if not ref:
-                break
-            # 格式转变，BGRtoRGB
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            # 转变成Image
-            frame = Image.fromarray(np.uint8(frame))
-            # 进行检测
-            frame = np.array(yolo.detect_image(frame))
-            # RGBtoBGR满足opencv显示格式
-            frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-
-            fps = (fps + (1. / (time.time() - t1))) / 2
-            print("fps= %.2f" % (fps))
-            # frame = cv2.putText(frame, "fps= %.2f" % (fps), (0, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-
-            # cv2.imshow("video", frame)
-            c = cv2.waitKey(1) & 0xff
-            if video_save_path != "":
-                out.write(frame)
-
-            if c == 27:
-                capture.release()
-                break
-
-        print("Video Detection Done!")
-        capture.release()
-        if video_save_path != "":
-            print("Save processed video to the path :" + video_save_path)
-            out.release()
-        cv2.destroyAllWindows()
-
-    elif mode == "fps":
-        img = Image.open(fps_image_path)
-        tact_time = yolo.get_FPS(img, test_interval)
-        print(str(tact_time) + ' seconds, ' + str(1 / tact_time) + 'FPS, @batch_size 1')
+    elif mode == "export":
+        img = input('Input image root:')
+        try:
+            image_list = os.listdir(img)
+            image_ids = [os.path.join(img, path) for path in image_list]
+        except:
+            print('Open Error! Try again!')
+        else:
+            for i in tqdm(range(len(image_list))):
+                image_id = image_list[i]
+                image = Image.open(image_ids[i])
+                r_image = yolo.detect_image(image, image_id[-20:-4], crop=crop, count=count, export_all=True)
 
     elif mode == "dir_predict":
         import os

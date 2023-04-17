@@ -30,8 +30,8 @@ class achelous(object):
         #   如果出现shape不匹配，同时要注意训练时的model_path和classes_path参数的修改
         # --------------------------------------------------------------------------#
         "model_path"        : "model_data/mv_gdf_nano_ps_s0.pth",
-        "radar_root"        : "E:/dataset_collection/WaterScenes/WaterScenes_new/VOCradar320/VOCradar320",
-        "radar_pc_root"     : "E:/dataset_collection/WaterScenes/WaterScenes_new/radar/radar_0220/radar",
+        "radar_root"        : "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/VOCradar320",
+        "radar_pc_root"     : "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/radar_0220/radar",
         "classes_path"      : 'model_data/waterscenes_benchmark.txt',
         "export_path"       : 'export_results',
         # ---------------------------------------------------------------------#
@@ -258,9 +258,6 @@ class achelous(object):
                 output_seg_pc_cls = torch.argmax(output_seg_pc, dim=1).unsqueeze(1)
                 # output_seg_pc_cls = np.array([[self.radar_pc_cls_color[key.item()]] for key in output_seg_pc_cls])
 
-
-
-
                 output_seg_pc_collections = np.concatenate([radar_pc_u, radar_pc_v, radar_pc_power,
                                                             output_seg_pc_cls.cpu().numpy()], axis=1)
 
@@ -426,7 +423,7 @@ class achelous(object):
                 draw.rectangle([left + i, top + i, right - i, bottom - i], outline=self.colors[c])
             draw.rectangle([tuple(text_origin), tuple(text_origin + label_size)], fill=self.colors[c])
             draw.text(text_origin, str(label, 'UTF-8'), fill=(0, 0, 0), font=font)
-            # del draw
+            del draw
 
         if export_all is False:
             plt.xticks([])
@@ -440,67 +437,8 @@ class achelous(object):
             plt.xticks([])
             plt.yticks([])
             plt.imshow(image)
-            plt.savefig("export_results/" + image_id+".jpg", bbox_inches='tight', pad_inches=0)
+            plt.savefig("export_results/" + image_id+".jpg", dpi=300, bbox_inches='tight', pad_inches=0)
         return image
-
-    def get_FPS(self, image, image_id, test_interval):
-        image_shape = np.array(np.shape(image)[0:2])
-        # ---------------------------------------------------------#
-        #   在这里将图像转换成RGB图像，防止灰度图在预测时报错。
-        #   代码仅仅支持RGB图像的预测，所有其它类型的图像都会转化成RGB
-        # ---------------------------------------------------------#
-        image = cvtColor(image)
-        # ---------------------------------------------------------#
-        #   给图像增加灰条，实现不失真的resize
-        #   也可以直接resize进行识别
-        # ---------------------------------------------------------#
-        image_data = resize_image(image, (self.input_shape[1], self.input_shape[0]), self.letterbox_image)
-        # ---------------------------------------------------------#
-        #   添加上batch_size维度
-        # ---------------------------------------------------------#
-        image_data = np.expand_dims(np.transpose(preprocess_input(np.array(image_data, dtype='float32')), (2, 0, 1)), 0)
-
-        # ------------------------------#
-        #   读取雷达特征map
-        # ------------------------------#
-        radar_path = os.path.join(self.radar_root, image_id + '.npz')
-        radar_data = np.load(radar_path)['arr_0']
-        radar_data = torch.from_numpy(radar_data).type(torch.FloatTensor).unsqueeze(0)
-
-        with torch.no_grad():
-            images = torch.from_numpy(image_data)
-            if self.cuda:
-                images = images.cuda()
-            # ---------------------------------------------------------#
-            #   将图像输入网络当中进行预测！
-            # ---------------------------------------------------------#
-            outputs, _ = self.net(images, radar_data)
-            outputs = decode_outputs(outputs, self.input_shape)
-            # ---------------------------------------------------------#
-            #   将预测框进行堆叠，然后进行非极大抑制
-            # ---------------------------------------------------------#
-            results = non_max_suppression(outputs, self.num_classes, self.input_shape,
-                                          image_shape, self.letterbox_image, conf_thres=self.confidence,
-                                          nms_thres=self.nms_iou)
-
-        t1 = time.time()
-        for _ in range(test_interval):
-            with torch.no_grad():
-                # ---------------------------------------------------------#
-                #   将图像输入网络当中进行预测！
-                # ---------------------------------------------------------#
-                outputs, _ = self.net(images)
-                outputs = decode_outputs(outputs, self.input_shape)
-                # ---------------------------------------------------------#
-                #   将预测框进行堆叠，然后进行非极大抑制
-                # ---------------------------------------------------------#
-                results = non_max_suppression(outputs, self.num_classes, self.input_shape,
-                                              image_shape, self.letterbox_image, conf_thres=self.confidence,
-                                              nms_thres=self.nms_iou)
-
-        t2 = time.time()
-        tact_time = (t2 - t1) / test_interval
-        return tact_time
 
     def detect_heatmap(self, image, image_id, heatmap_save_path):
         import cv2
@@ -537,6 +475,41 @@ class achelous(object):
         radar_data = np.load(radar_path)['arr_0']
         radar_data = torch.from_numpy(radar_data).type(torch.FloatTensor).unsqueeze(0)
 
+        # -------------------------------- 麻烦的点云读取 ---------------------------------- #
+        radar_pc_file = pd.read_csv(os.path.join(self.radar_pc_root, image_id + '.csv'), index_col=0)
+        radar_pc_features = radar_pc_file[self.radar_pc_seg_features]
+        radar_pc_labels = radar_pc_file[self.radar_pc_seg_labels]
+
+        # --------------------- 投影到相机平面 ------------------------- #
+        radar_pc_u = radar_pc_file[['u']]
+        radar_pc_v = radar_pc_file[['v']]
+        radar_pc_power = radar_pc_file[['rcs']]
+
+        radar_pc_indexes = np.random.choice(radar_pc_features.shape[0], self.radar_pc_align_num, replace=True)
+
+        radar_pc_u = np.asarray(radar_pc_u)
+        radar_pc_v = np.asarray(radar_pc_v)
+        radar_pc_power = np.asarray(radar_pc_power)
+        radar_pc_u = radar_pc_u[radar_pc_indexes]
+        radar_pc_v = radar_pc_v[radar_pc_indexes]
+        radar_pc_power = radar_pc_power[radar_pc_indexes]
+
+        radar_uv = np.concatenate([radar_pc_u, radar_pc_v], axis=1)
+
+        radar_pc_features = np.asarray(radar_pc_features)
+        radar_pc_labels = np.asarray(radar_pc_labels)
+
+        align_radar_pc_features = radar_pc_features[radar_pc_indexes]
+        align_radar_pc_labels = radar_pc_labels[radar_pc_indexes]
+        align_radar_pc_features = normalize(X=align_radar_pc_features, axis=0)
+        align_radar_pc_labels = align_radar_pc_labels
+
+        align_radar_pc_features = torch.from_numpy(np.array(align_radar_pc_features, dtype=np.float32)).type(
+            torch.FloatTensor).unsqueeze(0).permute(0, 2, 1).cuda()
+        align_radar_pc_labels = torch.from_numpy(np.array(align_radar_pc_labels, dtype=np.int32)). \
+            type(torch.LongTensor).cuda()
+        # --------------------------------------------------------------------------------- #
+
         with torch.no_grad():
             images = torch.from_numpy(image_data)
             if self.cuda:
@@ -544,7 +517,12 @@ class achelous(object):
             # ---------------------------------------------------------#
             #   将图像输入网络当中进行预测！
             # ---------------------------------------------------------#
-            outputs, _ = self.net(images, radar_data)
+            if self.is_radar_seg:
+                outputs, output_seg, output_seg_line, output_seg_pc = self.net(images, radar_data,
+                                                                               align_radar_pc_features)
+
+            else:
+                outputs, output_seg, output_seg_line = self.net(images, radar_data)
 
         outputs = [output.cpu().numpy() for output in outputs]
         plt.imshow(image, alpha=1)

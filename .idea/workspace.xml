@@ -5,8 +5,11 @@
       <change beforePath="$PROJECT_DIR$/.idea/Achelous.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/Achelous.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+<<<<<<< HEAD
       <change beforePath="$PROJECT_DIR$/achelous.py" beforeDir="false" afterPath="$PROJECT_DIR$/achelous.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/predict.py" beforeDir="false" afterPath="$PROJECT_DIR$/predict.py" afterDir="false" />
+=======
+>>>>>>> 212d23a (add evaluation functions of export and heatmap)
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -47,6 +50,82 @@
         </entry>
       </file>
       <file pinned="false" current-in-tab="false">
+<<<<<<< HEAD
+=======
+        <entry file="file://$PROJECT_DIR$/neck/ghostdualfpn.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="2384">
+              <caret line="149" column="21" selection-start-line="149" selection-start-column="21" selection-end-line="149" selection-end-column="21" />
+              <folding>
+                <element signature="e#0#12#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/README.md">
+          <provider selected="true" editor-type-id="split-provider[text-editor;markdown-preview-editor]">
+            <state split_layout="SPLIT">
+              <first_editor relative-caret-position="144">
+                <caret line="64" selection-start-line="64" selection-end-line="64" />
+              </first_editor>
+              <second_editor />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/predict.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-1635">
+              <caret line="9" selection-start-line="9" selection-end-line="9" />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/neck/cspdualfpn.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="384">
+              <caret line="24" selection-start-line="24" selection-end-line="24" />
+              <folding>
+                <element signature="e#0#12#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/loss/CAGrad.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state>
+              <folding>
+                <element signature="e#0#12#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/loss/detection_loss.py">
+          <provider selected="true" editor-type-id="text-editor" />
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="true">
+        <entry file="file://$PROJECT_DIR$/loss/pc_seg_loss.py">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="64">
+              <caret line="4" lean-forward="true" selection-start-line="4" selection-end-line="4" />
+              <folding>
+                <element signature="e#0#12#0" expanded="true" />
+              </folding>
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file pinned="false" current-in-tab="false">
+>>>>>>> 212d23a (add evaluation functions of export and heatmap)
         <entry file="file://$PROJECT_DIR$/backbone/vision/ImageEncoder.py">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="192">
@@ -350,9 +429,13 @@
       <workItem from="1680051098955" duration="603000" />
       <workItem from="1680235356964" duration="190000" />
       <workItem from="1680692562204" duration="3549000" />
+<<<<<<< HEAD
       <workItem from="1681604584188" duration="138000" />
       <workItem from="1681604950381" duration="1162000" />
       <workItem from="1681612825159" duration="10136000" />
+=======
+      <workItem from="1681604584188" duration="206000" />
+>>>>>>> 212d23a (add evaluation functions of export and heatmap)
     </task>
     <task id="LOCAL-00001" summary="no">
       <created>1679038752008</created>
@@ -550,11 +633,29 @@
       <option name="project" value="LOCAL" />
       <updated>1681604617026</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="add logo">
+      <created>1681604730568</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1681604730568</updated>
+    </task>
+    <task id="LOCAL-00030" summary="add logo">
+      <created>1681604766726</created>
+      <option name="number" value="00030" />
+      <option name="presentableId" value="LOCAL-00030" />
+      <option name="project" value="LOCAL" />
+      <updated>1681604766726</updated>
+    </task>
+    <option name="localTasksCounter" value="31" />
     <servers />
   </component>
   <component name="TimeTrackingManager">
+<<<<<<< HEAD
     <option name="totallyTimeSpent" value="53185000" />
+=======
+    <option name="totallyTimeSpent" value="41955000" />
+>>>>>>> 212d23a (add evaluation functions of export and heatmap)
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1048" extended-state="6" />
@@ -765,7 +866,11 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/neck/cspdualfpn.py">
       <provider selected="true" editor-type-id="text-editor">
+<<<<<<< HEAD
         <state relative-caret-position="160">
+=======
+        <state relative-caret-position="384">
+>>>>>>> 212d23a (add evaluation functions of export and heatmap)
           <caret line="24" selection-start-line="24" selection-end-line="24" />
           <folding>
             <element signature="e#0#12#0" expanded="true" />
@@ -790,6 +895,7 @@
     </entry>
     <entry file="file://D:/Anaconda/Software/Lib/site-packages/pandas/core/indexing.py">
       <provider selected="true" editor-type-id="text-editor">
+<<<<<<< HEAD
         <state relative-caret-position="174">
           <caret line="1373" selection-start-line="1373" selection-end-line="1373" />
         </state>
@@ -799,6 +905,10 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="176">
           <caret line="86" selection-start-line="86" selection-end-line="86" />
+=======
+        <state relative-caret-position="64">
+          <caret line="4" lean-forward="true" selection-start-line="4" selection-end-line="4" />
+>>>>>>> 212d23a (add evaluation functions of export and heatmap)
           <folding>
             <element signature="e#0#12#0" expanded="true" />
           </folding>
