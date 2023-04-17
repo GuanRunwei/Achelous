@@ -162,7 +162,7 @@ mIoU-pc: mIoU of point clouds
     wl_seg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/waterline/SegmentationClassPNG/SegmentationClassPNG" \
     num_classes_seg = 9
     
-- If you want to segment radar point clouds, define the path of point cloud files with csv format, and change the class number of point segmentation
+- If you want to segment radar point clouds, define the path of point cloud files with csv format, and change the class number of point segmentation. You could also change the name fields of features and label of point cloud.
 
   > radar_pc_seg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/radar_0220/radar" \
     radar_pc_seg_features = ['x', 'y', 'z', 'comp_velocity', 'rcs'] \
@@ -176,8 +176,13 @@ mIoU-pc: mIoU of point clouds
 
 ### Train
 1. Open train.py to see the collections of hyper-parameters
-2. For example, if you want to train Achelous with MobileViT (backbone), Ghost-Dual-FPN (neck), Nano detection head, PointNet as the point cloud segmentation head
+2. For example, if you want to train Achelous with MobileViT (backbone), Ghost-Dual-FPN (neck), Nano detection head, 
+   , PointNet as the point cloud segmentation head. The model size is S0. The input resolution is 320. Batchsize is 32 and epoch is 100. The initial learning rate is 0.03. Point number of each frame is 512.
    > python train.py --cuda True --fp16 True --is_pc True --backbone mv --neck gdf --nd True --phi S0 --resolution 320 --bs 32 --epoch 100 --lr_init 0.03 --pc_num 512 --pc_model pn
+
+### Test
+1. Change configrations in achelous.py
+2. See annotations in predict.py and run (including prediction, export, heatmap visualization and export onnx)
 ---
 
 ## Author Affiliations:
