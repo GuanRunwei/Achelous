@@ -120,6 +120,64 @@ mIoU-pc: mIoU of point clouds
 
 ## Implementation
 
+### Prepare environments
+> git clone  https://github.com/GuanRunwei/Achelous.git \
+> conda create -n achelous python=3.7 \
+> conda activate achelous \
+> pip install -r requirements.txt
+
+### Prepare datasets
+<font color=red>Pay attention: images and radar files are both necessary in Achelous.</font>
+
+- Prepare a txt file saving classname for object detection under the library model_data/ (for example, we can name it classes.txt): 
+  > pier \
+  > buoy \
+  > sailor \
+  > ship \
+  > boat \
+  > vessel \
+  > kayak
+  
+- Change annotations of object detection as the following (name it as 2007_train.txt and place it in the root library in Achelous, the same level with train.py):
+  > E:/Big_Datasets/water_surface/all-1114/all/VOCdevkit/VOC2007/JPEGImages/1664091257.87023.jpg 1131,430,1152,473,0 920,425,937,451,0 \
+  > E:/Big_Datasets/water_surface/all-1114/all/VOCdevkit/VOC2007/JPEGImages/1664091270.40352.jpg 249,374,266,424,0 396,381,412,431,0
+
+  Each line denotes the image url, x_min1, y_min1, x_max1, y_max1, class_index1, x_min2, y_min2, x_max2, y_max2, class_index2, ……
+
+  And the same operations to the validation files or test files (you can name them as 2007_val.txt)
+  
+  Define them in train.py
+  
+  > train_annotation_path = '2007_train.txt' \
+    val_annotation_path = '2007_val.txt'
+    
+  To complete the detection task, you also need to generate the npz files, which contains the radar feature maps of each frame, the detail is in radar_feature_map_generate.ipynb. 
+  You should keep the consistency of image and radar feature map size. (e.g. image->320\*320, so radar feature map is 320\*320). After that, define the file path of radar feature maps in train.py
+  > radar_file_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/VOCradar320"
+  
+  
+- Define file paths of images, segmentation of targets and lanes in train.py, and change the class number of semantic segmentation (class number + 1, 1 is the background)
+  > jpg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/images/images" \
+    se_seg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/semantic/SegmentationClass/SegmentationClass"  \
+    wl_seg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/waterline/SegmentationClassPNG/SegmentationClassPNG" \
+    num_classes_seg = 9
+    
+- If you want to segment radar point clouds, define the path of point cloud files with csv format, and change the class number of point segmentation
+
+  > radar_pc_seg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/radar_0220/radar" \
+    radar_pc_seg_features = ['x', 'y', 'z', 'comp_velocity', 'rcs'] \
+    radar_pc_seg_label = ['label']
+    radar_pc_classes = 8
+    
+   
+
+
+### 
+
+### Train
+1. Open train.py to see the collections of hyper-parameters
+2. For example, if you want to train Achelous with MobileViT (backbone), Ghost-Dual-FPN (neck), Nano detection head, PointNet as the point cloud segmentation head
+   > python train.py --cuda True --fp16 True --is_pc True --backbone mv --neck gdf --nd True --phi S0 --resolution 320 --bs 32 --epoch 100 --lr_init 0.03 --pc_num 512 --pc_model pn
 ---
 
 ## Author Affiliations:

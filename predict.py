@@ -20,11 +20,7 @@ if __name__ == "__main__":
     #   'heatmap'           表示进行预测结果的热力图可视化，详情查看下方注释。
     #   'export_onnx'       表示将模型导出为onnx，需要pytorch1.7.1以上。
     # ----------------------------------------------------------------------------------------------------------#
-<<<<<<< HEAD
-    mode = "export"
-=======
-    mode = "heatmap"
->>>>>>> 212d23a (add evaluation functions of export and heatmap)
+
     # -------------------------------------------------------------------------#
     #   crop                指定了是否在单张图片预测后对目标进行截取
     #   count               指定了是否进行目标的计数
@@ -94,7 +90,6 @@ if __name__ == "__main__":
             else:
                 r_image = yolo.detect_image(image, image_id, crop=crop, count=count)
                 # r_image.show()
-<<<<<<< HEAD
 
     elif mode == "export":
         img = input('Input image root:')
@@ -108,8 +103,6 @@ if __name__ == "__main__":
                 image_id = image_list[i]
                 image = Image.open(image_ids[i])
                 r_image = yolo.detect_image(image, image_id[-20:-4], crop=crop, count=count, export_all=True)
-=======
->>>>>>> 212d23a (add evaluation functions of export and heatmap)
 
     elif mode == "export":
         img = input('Input image root:')
