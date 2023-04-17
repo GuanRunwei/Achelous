@@ -445,6 +445,7 @@ class achelous(object):
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
+
         def sigmoid(x):
             y = 1.0 / (1.0 + np.exp(-x))
             return y
