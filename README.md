@@ -142,7 +142,7 @@ mIoU-pc: mIoU of point clouds
   > E:/Big_Datasets/water_surface/all-1114/all/VOCdevkit/VOC2007/JPEGImages/1664091257.87023.jpg 1131,430,1152,473,0 920,425,937,451,0 \
   > E:/Big_Datasets/water_surface/all-1114/all/VOCdevkit/VOC2007/JPEGImages/1664091270.40352.jpg 249,374,266,424,0 396,381,412,431,0
 
-  Each line denotes the image url, x_min1, y_min1, x_max1, y_max1, class_index1, x_min2, y_min2, x_max2, y_max2, class_index2, ……
+  Each line denotes the image url, x_min1, y_min1, x_max1, y_max1, class_index1 x_min2, y_min2, x_max2, y_max2, class_index2 ……
 
   And the same operations to the validation files or test files (you can name them as 2007_val.txt)
   
