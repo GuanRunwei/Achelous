@@ -22,6 +22,8 @@ Based on a monocular camera and a 4D mmWave radar,
 - [ ] Instance segmentation
 - [ ] Point cloud instance segmentation
 
+[![IMAGE ALT TEXT](icons/output1_compress.mp4)]
+
 <div  align="center">    
   <img src="icons/prediction_results.jpg" alt="pre1" align=center />
 </div>
