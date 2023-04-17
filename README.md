@@ -23,7 +23,7 @@ Based on a monocular camera and a 4D mmWave radar,
 - [ ] Point cloud instance segmentation
 
 
-[![IMAGE ALT TEXT](https://github.com/GuanRunwei/Achelous/blob/main/icons/1.png)](https://www.youtube.com/watch?v=1A3UXVPEEQg&t=102s)
+<a href="{[video-url](https://www.youtube.com/watch?v=1A3UXVPEEQg&t=102s)}" title="Achelous Demo"><img src="{[image-url](https://github.com/GuanRunwei/Achelous/blob/main/icons/1.png)}" alt="Achelous Demo" /></a>
 
 
 <div  align="center">    
