@@ -184,6 +184,7 @@ mIoU-pc: mIoU of point clouds
    > python train.py --cuda True --fp16 True --is_pc True --backbone mv --neck gdf --nd True --phi S0 --resolution 320 --bs 32 --epoch 100 --lr_init 0.03 --pc_num 512 --pc_model pn
 
 
+
 ### Test
 1. Change configrations in achelous.py
 2. See annotations in predict.py and run (including prediction, export, heatmap visualization and export onnx)
