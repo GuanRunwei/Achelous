@@ -160,18 +160,18 @@ mIoU-pc: mIoU of point clouds
     
   To complete the detection task, you also need to generate the npz files, which contains the radar feature maps of each frame, the detail is in radar_feature_map_generate.ipynb. 
   You should keep the consistency of image and radar feature map size. (e.g. image->320\*320, so radar feature map is 320\*320). After that, define the file path of radar feature maps in train.py
-  > radar_file_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/VOCradar320"
+  > radar_file_path = " "
   
   
 - Define file paths of images, segmentation of targets and lanes in train.py, and change the class number of semantic segmentation (class number + 1, 1 is the background)
-  > jpg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/images/images" \
-    se_seg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/semantic/SegmentationClass/SegmentationClass"  \
-    wl_seg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/waterline/SegmentationClassPNG/SegmentationClassPNG" \
+  > jpg_path = " " \
+    se_seg_path = " "  \
+    wl_seg_path = " " \
     num_classes_seg = 9
     
 - If you want to segment radar point clouds, define the path of point cloud files with csv format, and change the class number of point segmentation. You could also change the name fields of features and label of point cloud.
 
-  > radar_pc_seg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/radar_0220/radar" \
+  > radar_pc_seg_path = " " \
     radar_pc_seg_features = ['x', 'y', 'z', 'comp_velocity', 'rcs'] \
     radar_pc_seg_label = ['label']
     radar_pc_classes = 8
@@ -192,7 +192,5 @@ mIoU-pc: mIoU of point clouds
 2. See annotations in predict.py and run (including prediction, export, heatmap visualization and export onnx)
 ---
 
-## Author Affiliations:
-- University of Liverpool
-- Institute of Deep Perception Technology, JITRI
-- Xi'an Jiaotong-Liverpool University
+## Acknowledgement
+- https://github.com/bubbliiiing
