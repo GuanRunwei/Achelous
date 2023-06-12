@@ -1,21 +1,22 @@
 import os
 import re
-import torch
 import matplotlib
+import torch
+import torch.nn.functional as F
 
 matplotlib.use('Agg')
-import scipy.signal
 from matplotlib import pyplot as plt
-from torch.utils.tensorboard import SummaryWriter
-from sklearn.preprocessing import MinMaxScaler, normalize
+import scipy.signal
+import pandas as pd
+import cv2
 import shutil
 import numpy as np
-import pandas as pd
+from sklearn.preprocessing import MinMaxScaler, normalize
 from PIL import Image
 from tqdm import tqdm
+from torch.utils.tensorboard import SummaryWriter
 from .utils import cvtColor, preprocess_input, resize_image
-from .utils_bbox import decode_outputs, non_max_suppression
-from .utils_map import get_coco_map, get_map
+from .utils_metrics import compute_mIoU
 
 
 class LossHistory():
@@ -84,28 +85,23 @@ class LossHistory():
 
 
 class EvalCallback():
-    def __init__(self, net, input_shape, class_names, num_classes, val_lines, log_dir, cuda, radar_path, local_rank,
-                 radar_pc_seg_path, is_radar_pc_seg, radar_pc_seg_features, radar_pc_seg_label, radar_pc_num,
-                 map_out_path=".temp_map_out", max_boxes=100, confidence=0.05, nms_iou=0.5,
-                 letterbox_image=True, MINOVERLAP=0.5, eval_flag=True, period=1):
+    def __init__(self, net, input_shape, num_classes, image_ids, dataset_path, log_dir, cuda, radar_path, jpg_path,
+                 local_rank, radar_pc_seg_path, is_radar_pc_seg, radar_pc_seg_features, radar_pc_seg_label, radar_pc_num,
+                 miou_out_path=".temp_miou_out", eval_flag=True, period=1):
         super(EvalCallback, self).__init__()
 
         self.net = net
         self.input_shape = input_shape
-        self.class_names = class_names
         self.num_classes = num_classes
-        self.val_lines = val_lines
+        self.image_ids = image_ids
+        self.dataset_path = dataset_path
         self.log_dir = log_dir
         self.cuda = cuda
-        self.map_out_path = map_out_path
-        self.max_boxes = max_boxes
-        self.confidence = confidence
-        self.nms_iou = nms_iou
-        self.letterbox_image = letterbox_image
-        self.MINOVERLAP = MINOVERLAP
+        self.miou_out_path = miou_out_path
         self.eval_flag = eval_flag
         self.period = period
         self.radar_path = radar_path
+        self.jpg_path = jpg_path
         self.local_rank = local_rank
         self.radar_pc_seg_path = radar_pc_seg_path
         self.is_radar_pc_seg = is_radar_pc_seg
@@ -113,39 +109,42 @@ class EvalCallback():
         self.radar_pc_seg_label = radar_pc_seg_label
         self.radar_pc_num = radar_pc_num
 
-        self.maps = [0]
+        self.image_ids = [os.path.splitext(image_id.split('/')[-1].split(' ')[0])[0]for image_id in image_ids]
+
+        self.mious = [0]
         self.epoches = [0]
         if self.eval_flag:
-            with open(os.path.join(self.log_dir, "epoch_map.txt"), 'a') as f:
+            with open(os.path.join(self.log_dir, "epoch_miou.txt"), 'a') as f:
                 f.write(str(0))
                 f.write("\n")
 
-    def get_map_txt(self, image_id, image, radar_data, class_names, map_out_path, local_rank):
-        f = open(os.path.join(map_out_path, "detection-results/" + image_id + ".txt"), "w")
-        image_shape = np.array(np.shape(image)[0:2])
+    def get_miou_png(self, image, radar_data, image_id):
         # ---------------------------------------------------------#
         #   在这里将图像转换成RGB图像，防止灰度图在预测时报错。
         #   代码仅仅支持RGB图像的预测，所有其它类型的图像都会转化成RGB
         # ---------------------------------------------------------#
         image = cvtColor(image)
+        orininal_h = np.array(image).shape[0]
+        orininal_w = np.array(image).shape[1]
         # ---------------------------------------------------------#
         #   给图像增加灰条，实现不失真的resize
         #   也可以直接resize进行识别
         # ---------------------------------------------------------#
-        image_data = resize_image(image, (self.input_shape[1], self.input_shape[0]), self.letterbox_image)
+        image_data, nw, nh = resize_image(image, (self.input_shape[1], self.input_shape[0]))
         # ---------------------------------------------------------#
         #   添加上batch_size维度
         # ---------------------------------------------------------#
-        image_data = np.expand_dims(np.transpose(preprocess_input(np.array(image_data, dtype='float32')), (2, 0, 1)), 0)
+        image_data = np.expand_dims(np.transpose(preprocess_input(np.array(image_data, np.float32)), (2, 0, 1)), 0)
 
         with torch.no_grad():
             images = torch.from_numpy(image_data)
             if self.cuda:
                 images = images.cuda(self.local_rank)
                 radar_data = radar_data.cuda(self.local_rank)
-            # ---------------------------------------------------------#
-            #   将图像输入网络当中进行预测！
-            # ---------------------------------------------------------#
+
+            # ---------------------------------------------------#
+            #   图片传入网络进行预测
+            # ---------------------------------------------------#
             if self.is_radar_pc_seg:
                 # -------------------------------- 麻烦的点云读取 ---------------------------------- #
                 radar_pc_file = pd.read_csv(os.path.join(self.radar_pc_seg_path, image_id + '.csv'), index_col=0)
@@ -164,117 +163,86 @@ class EvalCallback():
 
                 align_radar_pc_features = torch.from_numpy(np.array(align_radar_pc_features, dtype=np.float32)).type(
                     torch.FloatTensor).unsqueeze(0).permute(0, 2, 1).cuda(self.local_rank)
-                align_radar_pc_labels = torch.from_numpy(np.array(align_radar_pc_labels, dtype=np.int32)).\
+                align_radar_pc_labels = torch.from_numpy(np.array(align_radar_pc_labels, dtype=np.int32)). \
                     type(torch.LongTensor).cuda(self.local_rank)
                 # --------------------------------------------------------------------------------- #
-
-                outputs = self.net(images, radar_data, align_radar_pc_features)[0]
+                pr = self.net(images, radar_data, align_radar_pc_features)[1][0]
             else:
-                outputs = self.net(images, radar_data)[0]
-            outputs = decode_outputs(outputs, self.input_shape, local_rank)
-            # ---------------------------------------------------------#
-            #   将预测框进行堆叠，然后进行非极大抑制
-            # ---------------------------------------------------------#
-            results = non_max_suppression(outputs, self.num_classes, self.input_shape,
-                                          image_shape, self.letterbox_image, conf_thres=self.confidence,
-                                          nms_thres=self.nms_iou)
+                pr = self.net(images, radar_data)[1][0]
 
-            if results[0] is None:
-                return
+            # ---------------------------------------------------#
+            #   取出每一个像素点的种类
+            # ---------------------------------------------------#
+            pr = F.softmax(pr.permute(1, 2, 0), dim=-1).cpu().numpy()
+            # --------------------------------------#
+            #   将灰条部分截取掉
+            # --------------------------------------#
+            pr = pr[int((self.input_shape[0] - nh) // 2): int((self.input_shape[0] - nh) // 2 + nh), \
+                 int((self.input_shape[1] - nw) // 2): int((self.input_shape[1] - nw) // 2 + nw)]
+            # ---------------------------------------------------#
+            #   进行图片的resize
+            # ---------------------------------------------------#
+            pr = cv2.resize(pr, (orininal_w, orininal_h), interpolation=cv2.INTER_LINEAR)
+            # ---------------------------------------------------#
+            #   取出每一个像素点的种类
+            # ---------------------------------------------------#
+            pr = pr.argmax(axis=-1)
 
-            top_label = np.array(results[0][:, 6], dtype='int32')
-            top_conf = results[0][:, 4] * results[0][:, 5]
-            top_boxes = results[0][:, :4]
-
-        top_100 = np.argsort(top_conf)[::-1][:self.max_boxes]
-        top_boxes = top_boxes[top_100]
-        top_conf = top_conf[top_100]
-        top_label = top_label[top_100]
-
-        for i, c in list(enumerate(top_label)):
-            predicted_class = self.class_names[int(c)]
-            box = top_boxes[i]
-            score = str(top_conf[i])
-
-            top, left, bottom, right = box
-            if predicted_class not in class_names:
-                continue
-
-            f.write("%s %s %s %s %s %s\n" % (
-            predicted_class, score[:6], str(int(left)), str(int(top)), str(int(right)), str(int(bottom))))
-
-        f.close()
-        return
+        image = Image.fromarray(np.uint8(pr))
+        return image
 
     def on_epoch_end(self, epoch, model_eval):
         if epoch % self.period == 0 and self.eval_flag:
             self.net = model_eval
-            if not os.path.exists(self.map_out_path):
-                os.makedirs(self.map_out_path)
-            if not os.path.exists(os.path.join(self.map_out_path, "ground-truth")):
-                os.makedirs(os.path.join(self.map_out_path, "ground-truth"))
-            if not os.path.exists(os.path.join(self.map_out_path, "detection-results")):
-                os.makedirs(os.path.join(self.map_out_path, "detection-results"))
-            print("Get map.")
-            for annotation_line in tqdm(self.val_lines):
-                line = annotation_line.split()
-
+            gt_dir = self.dataset_path + '/'
+            pred_dir = os.path.join(self.miou_out_path, 'detection-results')
+            if not os.path.exists(self.miou_out_path):
+                os.makedirs(self.miou_out_path)
+            if not os.path.exists(pred_dir):
+                os.makedirs(pred_dir)
+            print("Get miou.")
+            for image_id in tqdm(self.image_ids):
                 # ------------------------------#
                 #   读取雷达特征map
                 # ------------------------------#
-                name = os.path.splitext(annotation_line.split('/')[-1].split(' ')[0])[0]
-
-                radar_path = os.path.join(self.radar_path, name + '.npz')
+                radar_path = os.path.join(self.radar_path, image_id + '.npz')
                 radar_data = np.load(radar_path)['arr_0']
                 radar_data = torch.from_numpy(radar_data).type(torch.cuda.FloatTensor).unsqueeze(0)
 
-                image_id = name
-                # ------------------------------#
-                #   读取图像并转换成RGB图像
-                # ------------------------------#
-                image = Image.open(line[0])
-                # ------------------------------#
-                #   获得预测框
-                # ------------------------------#
-                gt_boxes = np.array([np.array(list(map(int, box.split(',')))) for box in line[1:]])
+                # -------------------------------#
+                #   从文件中读取图像
+                # -------------------------------#
+                image_path = os.path.join(self.jpg_path, image_id + ".jpg")
+                image = Image.open(image_path)
                 # ------------------------------#
                 #   获得预测txt
                 # ------------------------------#
-                self.get_map_txt(image_id, image, radar_data, self.class_names, self.map_out_path, self.local_rank)
+                image = self.get_miou_png(image, radar_data, image_id)
+                image.save(os.path.join(pred_dir, image_id + ".png"))
 
-                # ------------------------------#
-                #   获得真实框txt
-                # ------------------------------#
-                with open(os.path.join(self.map_out_path, "ground-truth/" + image_id + ".txt"), "w") as new_f:
-                    for box in gt_boxes:
-                        left, top, right, bottom, obj = box
-                        obj_name = self.class_names[obj]
-                        new_f.write("%s %s %s %s %s\n" % (obj_name, left, top, right, bottom))
+            print("Calculate miou.")
+            _, IoUs, _, _ = compute_mIoU(gt_dir, pred_dir, self.image_ids, self.num_classes, None)  # 执行计算mIoU的函数
+            temp_miou = np.nanmean(IoUs) * 100
 
-            print("Calculate Map.")
-            try:
-                temp_map = get_coco_map(class_names=self.class_names, path=self.map_out_path)[1]
-            except:
-                temp_map = get_map(self.MINOVERLAP, False, path=self.map_out_path)
-            self.maps.append(temp_map)
+            self.mious.append(temp_miou)
             self.epoches.append(epoch)
 
-            with open(os.path.join(self.log_dir, "epoch_map.txt"), 'a') as f:
-                f.write(str(temp_map))
+            with open(os.path.join(self.log_dir, "epoch_miou.txt"), 'a') as f:
+                f.write(str(temp_miou))
                 f.write("\n")
 
             plt.figure()
-            plt.plot(self.epoches, self.maps, 'red', linewidth=2, label='train map')
+            plt.plot(self.epoches, self.mious, 'red', linewidth=2, label='train miou')
 
             plt.grid(True)
             plt.xlabel('Epoch')
-            plt.ylabel('Map %s' % str(self.MINOVERLAP))
-            plt.title('A Map Curve')
+            plt.ylabel('Miou')
+            plt.title('A Miou Curve')
             plt.legend(loc="upper right")
 
-            plt.savefig(os.path.join(self.log_dir, "epoch_map.png"))
+            plt.savefig(os.path.join(self.log_dir, "epoch_miou.png"))
             plt.cla()
             plt.close("all")
 
-            print("Get map done.")
-            shutil.rmtree(self.map_out_path)
+            print("Get miou of semantic segmentation done.")
+            shutil.rmtree(self.miou_out_path)
