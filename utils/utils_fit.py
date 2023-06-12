@@ -36,7 +36,7 @@ def fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history
     total_loss = 0
     val_total_loss = 0
 
-    if local_rank >= 0:
+    if local_rank == 0:
         print('Start Train')
         pbar = tqdm(total=epoch_step, desc=f'Epoch {epoch + 1}/{Epoch}', postfix=dict, mininterval=0.3)
     model_train.train()
@@ -145,7 +145,7 @@ def fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history
                     loss_seg = loss_seg + main_dice
                     logg_seg_w = loss_seg_w + main_dice_w
 
-                loss_det = yolo_loss(outputs, targets).cuda(local_rank)
+                loss_det = yolo_loss(outputs, targets)
 
                 mtl = HUncertainty(task_num=3)
                 mgda = MGDA()
@@ -181,13 +181,13 @@ def fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history
         total_f_score += train_f_score.item()
         total_f_score_w += train_f_score_w.item()
 
-        if local_rank >= 0:
+        if local_rank == 0:
             if is_radar_pc_seg:
                 pbar.set_postfix(**{'detection loss': total_loss_det / (iteration + 1),
                                 'se seg loss': total_loss_seg / (iteration + 1),
                                 'wl seg loss': total_loss_seg_w / (iteration + 1),
                                 'pc seg loss': total_loss_seg_pc / (iteration + 1),
-                                'total loss': total_loss.item() / (iteration + 1),
+                                'total loss': total_loss / (iteration + 1),
                                 'f score se': total_f_score / (iteration + 1),
                                 'f score wl': total_f_score_w / (iteration + 1),
                                 'lr': get_lr(optimizer)})
@@ -195,13 +195,13 @@ def fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history
                 pbar.set_postfix(**{'detection loss': total_loss_det / (iteration + 1),
                                     'se seg loss': total_loss_seg / (iteration + 1),
                                     'wl seg loss': total_loss_seg_w / (iteration + 1),
-                                    'total loss': total_loss.item() / (iteration + 1),
+                                    'total loss': total_loss / (iteration + 1),
                                     'f score se': total_f_score / (iteration + 1),
                                     'f score wl': total_f_score_w / (iteration + 1),
                                     'lr': get_lr(optimizer)})
             pbar.update(1)
 
-    if local_rank == 0 or local_rank == 1:
+    if local_rank == 0:
         pbar.close()
         print('Finish Train')
         print('Start Validation')
@@ -287,7 +287,7 @@ def fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history
             val_loss_seg_pc += loss_value_seg_pc.item()
         val_total_loss = val_loss_det + val_loss_seg + val_loss_seg_w + val_loss_seg_pc
 
-        if local_rank >= 0:
+        if local_rank == 0:
             if is_radar_pc_seg:
                 pbar.set_postfix(**{'detection val_loss': val_loss_det / (iteration + 1),
                                     'se seg val_loss': val_loss_seg / (iteration + 1),
@@ -307,7 +307,7 @@ def fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history
                                     })
             pbar.update(1)
 
-    if local_rank >= 0:
+    if local_rank == 0:
         pbar.close()
         print('Finish Validation')
         loss_history.append_loss(epoch + 1, total_loss_det / epoch_step, val_loss_det / epoch_step_val)

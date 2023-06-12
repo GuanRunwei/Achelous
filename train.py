@@ -337,7 +337,7 @@ if __name__ == "__main__":
         # ------------------------------------------------------#
         #   权值文件请看README，百度网盘下载
         # ------------------------------------------------------#
-        if local_rank >= 0:
+        if local_rank == 0:
             print('Load weights {}.'.format(model_path))
 
         # ------------------------------------------------------#
@@ -357,7 +357,7 @@ if __name__ == "__main__":
         # ------------------------------------------------------#
         #   显示没有匹配上的Key
         # ------------------------------------------------------#
-        if local_rank >= 0:
+        if local_rank == 0:
             print("\nSuccessful Load Key:", str(load_key)[:500], "……\nSuccessful Load Key Num:", len(load_key))
             print("\nFail To Load Key:", str(no_load_key)[:500], "……\nFail To Load Key num:", len(no_load_key))
             print("\n\033[1;33;44m温馨提示，head部分没有载入是正常现象，Backbone部分没有载入是错误的。\033[0m")
@@ -682,7 +682,7 @@ if __name__ == "__main__":
             if distributed:
                 dist.barrier()
 
-        if local_rank >= 0:
+        if local_rank == 0:
             loss_history.writer.close()
             loss_history_seg.writer.close()
             loss_history_seg_wl.writer.close()

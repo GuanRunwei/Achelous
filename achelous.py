@@ -29,7 +29,7 @@ class achelous(object):
         #   验证集损失较低不代表mAP较高，仅代表该权值在验证集上泛化性能较好。
         #   如果出现shape不匹配，同时要注意训练时的model_path和classes_path参数的修改
         # --------------------------------------------------------------------------#
-        "model_path"        : "model_data/mv_gdf_nano_ps_s0.pth",
+        "model_path"        : "model_data/mv_gdf_nano_ps_s2.pth",
         "radar_root"        : "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/VOCradar320",
         "radar_pc_root"     : "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/radar_0220/radar",
         "classes_path"      : 'model_data/waterscenes_benchmark.txt',
@@ -45,11 +45,11 @@ class achelous(object):
         # ---------------------------------------------------------------------#
         #   所使用的Achelous的版本，'SO', 'S1', 'S2'
         # ---------------------------------------------------------------------#
-        "phi": 'S0',
+        "phi": 'S2',
         # ---------------------------------------------------------------------#
         #   只有得分大于置信度的预测框会被保留下来
         # ---------------------------------------------------------------------#
-        "confidence": 0.35,
+        "confidence": 0.25,
         # ---------------------------------------------------------------------#
         #   非极大抑制所用到的nms_iou大小
         # ---------------------------------------------------------------------#
@@ -264,7 +264,7 @@ class achelous(object):
                 output_seg_pc_collections = np.unique(output_seg_pc_collections, axis=0)
 
                 fig = plt.figure()
-                plt.scatter(x=output_seg_pc_collections[:, 0], y=output_seg_pc_collections[:, 1], s=output_seg_pc_collections[:, 2], c=output_seg_pc_collections[:, 3], alpha=0.95)
+                plt.scatter(x=output_seg_pc_collections[:, 0], y=output_seg_pc_collections[:, 1], s=output_seg_pc_collections[:, 2], c=output_seg_pc_collections[:, 3], alpha=0.98)
             else:
                 outputs, output_seg, output_seg_line = self.net(images, radar_data)
                 outputs = decode_outputs(outputs, self.input_shape, 0)
@@ -429,6 +429,7 @@ class achelous(object):
             plt.yticks([])
             plt.axis('off')
             plt.imshow(image)
+            plt.savefig("export_results/" + image_id + ".jpg", dpi=300, bbox_inches='tight', pad_inches=0)
             plt.show()
 
         else:
