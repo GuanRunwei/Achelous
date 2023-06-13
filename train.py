@@ -52,6 +52,7 @@ if __name__ == "__main__":
     parser.add_argument("--dice", type=str, default="True")
     parser.add_argument("--focal", type=str, default="True")
     parser.add_argument("--pc_model", type=str, default='pn')
+    parser.add_argument("--spp", type=str, default='True')
 
     args = parser.parse_args()
 
@@ -90,6 +91,11 @@ if __name__ == "__main__":
     #   neck (2 options): gdf (Ghost-Dual-FPN), cdf (CSP-Dual-FPN)
     # ------------------------------------------------------#
     neck = args.neck
+
+    # ------------------------------------------------------#
+    #   spp: True->SPP, False->SPPF
+    # ------------------------------------------------------#
+    spp = strtobool(args.spp)
 
     # ------------------------------------------------------#
     #   detection head (2 options): normal -> False, lightweight -> True
@@ -328,10 +334,10 @@ if __name__ == "__main__":
     if is_radar_pc_seg:
         model = Achelous(resolution=input_shape[0], num_det=num_classes, num_seg=num_classes_seg, phi=phi,
                          backbone=backbone, neck=neck, nano_head=lightweight, pc_seg=pc_seg_model,
-                         pc_channels=radar_pc_channels, pc_classes=radar_pc_classes).cuda(local_rank)
+                         pc_channels=radar_pc_channels, pc_classes=radar_pc_classes, spp=spp).cuda(local_rank)
     else:
         model = Achelous3T(resolution=input_shape[0], num_det=num_classes, num_seg=num_classes_seg, phi=phi,
-                           backbone=backbone, neck=neck,
+                           backbone=backbone, neck=neck, spp=spp,
                            nano_head=lightweight).cuda(local_rank)
     weights_init(model)
     if model_path != '':
@@ -430,7 +436,7 @@ if __name__ == "__main__":
 
     show_config(
         backbone=backbone, neck=neck, lightweight_head=lightweight, is_radar_pc_seg=is_radar_pc_seg,
-        fp16=fp16, phi=phi, is_focal=focal_loss, is_dice=dice_loss,
+        fp16=fp16, phi=phi, is_focal=focal_loss, is_dice=dice_loss, use_spp=spp,
         classes_path=classes_path, model_path=model_path, input_shape=input_shape, \
         Init_Epoch=Init_Epoch, Freeze_Epoch=Freeze_Epoch, UnFreeze_Epoch=UnFreeze_Epoch,
         Freeze_batch_size=Freeze_batch_size, Unfreeze_batch_size=Unfreeze_batch_size, Freeze_Train=Freeze_Train, \

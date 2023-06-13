@@ -86,8 +86,7 @@ class GhostDualFPN(nn.Module):
         if use_spp:
             self.spp = SPP(c1=self.channel_widths[-1], c2=self.channel_widths[-1])
         else:
-            self.spp = BaseConv(in_channels=self.channel_widths[-1], out_channels=self.channel_widths[-1], ksize=3,
-                                stride=1)
+            self.spp = SPPF(c1=self.channel_widths[-1], c2=self.channel_widths[-1])
 
         # 176, 16, 16 -> 192, 32, 32
         self.upsample_5_to_4 = Upsample(in_channels=self.channel_widths[-1], out_channels=self.channel_widths[-2])

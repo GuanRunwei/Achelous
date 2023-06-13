@@ -67,6 +67,10 @@ class achelous(object):
         # ---------------------------------------------------------------------#
         "neck": 'gdf',
         # ---------------------------------------------------------------------#
+        #   spp
+        # ---------------------------------------------------------------------#
+        "spp": True,
+        # ---------------------------------------------------------------------#
         #   detection head
         # ---------------------------------------------------------------------#
         "nano": True,
@@ -155,13 +159,13 @@ class achelous(object):
                                 backbone=self.backbone, neck=self.neck, nano_head=self.nano,
                                 resolution=self.input_shape[0],
                                 pc_seg=self.radar_pc, pc_classes=self.radar_pc_classes,
-                                pc_channels=self.radar_pc_features_num, phi=self.phi)
+                                pc_channels=self.radar_pc_features_num, phi=self.phi, spp=self.spp)
 
         else:
             self.net = Achelous3T(num_det=self.num_classes, num_seg=self.num_classes_seg,
                                   radar_channels=self.radar_channels,
                                   backbone=self.backbone, neck=self.neck, nano_head=self.nano,
-                                  resolution=self.input_shape[0], phi=self.phi)
+                                  resolution=self.input_shape[0], phi=self.phi, spp=self.spp)
 
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.net.load_state_dict(torch.load(self.model_path, map_location=device))

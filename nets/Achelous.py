@@ -25,7 +25,7 @@ image_encoder_width = {
 
 class Achelous(nn.Module):
     def __init__(self, num_det, num_seg, phi='S0', image_channels=3, radar_channels=3, resolution=416,
-                 backbone='ef', neck='gdf', pc_seg='pn', pc_channels=6, pc_classes=9, nano_head=False):
+                 backbone='ef', neck='gdf', pc_seg='pn', pc_channels=6, pc_classes=9, nano_head=False, spp=True):
         super(Achelous, self).__init__()
 
         if pc_seg == 'pn':
@@ -40,7 +40,7 @@ class Achelous(nn.Module):
         self.radar_channels = radar_channels
 
         self.image_radar_encoder = IREncoder(num_class_seg=num_seg, resolution=resolution, backbone=backbone, neck=neck,
-                                             phi=phi)
+                                             phi=phi, use_spp=spp)
         self.det_head = DecoupleHead(num_classes=num_det, phi=phi, nano_head=nano_head)
 
     def forward(self, x, x_radar, x_point_clouds):
