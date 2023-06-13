@@ -24,7 +24,7 @@ image_encoder_width = {
 
 
 class Achelous(nn.Module):
-    def __init__(self, num_det, num_seg, phi='SO', image_channels=3, radar_channels=3, resolution=416,
+    def __init__(self, num_det, num_seg, phi='S0', image_channels=3, radar_channels=3, resolution=416,
                  backbone='ef', neck='gdf', pc_seg='pn', pc_channels=6, pc_classes=9, nano_head=False):
         super(Achelous, self).__init__()
 

@@ -11,7 +11,7 @@ import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-
+from distutils.util import strtobool
 from nets.Achelous import *
 from loss.detection_loss import (ModelEMA, YOLOLoss, get_lr_scheduler,
                                 set_optimizer_lr, weights_init)
@@ -33,12 +33,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     # 添加参数解析
-    parser.add_argument("--cuda", type=bool, default=True)
-    parser.add_argument("--fp16", type=bool, default=True)
-    parser.add_argument("--is_pc", help="use pc seg", type=bool, default=False)
+    parser.add_argument("--cuda", type=str, default="True")
+    parser.add_argument("--ddp", type=str, default="False")
+    parser.add_argument("--fp16", type=str, default="True")
+    parser.add_argument("--is_pc", help="use pc seg", type=str, default="False")
     parser.add_argument("--backbone", type=str, default='en')
     parser.add_argument("--neck", type=str, default='gdf')
-    parser.add_argument("--nd", type=bool, default=True)
+    parser.add_argument("--nd", type=str, default="True")
     parser.add_argument("--phi", type=str, default='S0')
     parser.add_argument("--resolution", type=int, default=320)
     parser.add_argument("--bs", type=int, default=32)
@@ -48,8 +49,8 @@ if __name__ == "__main__":
     parser.add_argument("--opt", type=str, default='sgd')
     parser.add_argument("--pc_num", type=int, default=512)
     parser.add_argument("--nw", type=int, default=4)
-    parser.add_argument("--dice", type=bool, default=True)
-    parser.add_argument("--focal", type=bool, default=True)
+    parser.add_argument("--dice", type=str, default="True")
+    parser.add_argument("--focal", type=str, default="True")
     parser.add_argument("--pc_model", type=str, default='pn')
 
     args = parser.parse_args()
@@ -60,10 +61,10 @@ if __name__ == "__main__":
     #   Cuda    是否使用Cuda
     #           没有GPU可以设置成False
     # ---------------------------------#
-    Cuda = args.cuda
+    Cuda = strtobool(args.cuda)
 
     # ---------------------------------------------------------------------#
-    distributed = False
+    distributed = strtobool(args.ddp)
     # ---------------------------------------------------------------------#
     #   sync_bn     是否使用sync_bn，DDP模式多卡可用
     # ---------------------------------------------------------------------#
@@ -72,7 +73,7 @@ if __name__ == "__main__":
     #   fp16        是否使用混合精度训练
     #               可减少约一半的显存、需要pytorch1.7.1以上
     # ---------------------------------------------------------------------#
-    fp16 = args.fp16
+    fp16 = strtobool(args.fp16)
     # ---------------------------------------------------------------------#
     #   classes_path    指向model_data下的txt，与自己训练的数据集相关
     #                   训练前一定要修改classes_path，使其对应自己的数据集
@@ -93,7 +94,7 @@ if __name__ == "__main__":
     # ------------------------------------------------------#
     #   detection head (2 options): normal -> False, lightweight -> True
     # ------------------------------------------------------#
-    lightweight = args.nd
+    lightweight = strtobool(args.nd)
 
     # ------------------------------------------------------#
     #   input_shape     all models support 320*320, all models except mobilevit support 416*416
@@ -239,7 +240,7 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------#
     # 是否需要训练毫米波雷达点云分割
     # ------------------------------------------------------------------#
-    is_radar_pc_seg = args.is_pc
+    is_radar_pc_seg = strtobool(args.is_pc)
 
     pc_seg_model = args.pc_model
     # ------------------------------------------------------------------#
@@ -273,12 +274,12 @@ if __name__ == "__main__":
     #   种类少（几类）时，设置为True
     #   种类多（十几类）时，如果batch_size比较大（10以上），那么设置为True
     #   种类多（十几类）时，如果batch_size比较小（10以下），那么设置为False
-    dice_loss = args.dice
+    dice_loss = strtobool(args.dice)
 
     # ------------------------------------------------------------------#
     #   是否使用focal loss来防止正负样本不平衡
     # ------------------------------------------------------------------#
-    focal_loss = args.focal
+    focal_loss = strtobool(args.focal)
 
     # ------------------------------------------------------------------#
     #   是否给不同种类赋予不同的损失权值，默认是平衡的。
@@ -429,12 +430,13 @@ if __name__ == "__main__":
 
     show_config(
         backbone=backbone, neck=neck, lightweight_head=lightweight, is_radar_pc_seg=is_radar_pc_seg,
+        fp16=fp16, phi=phi, is_focal=focal_loss, is_dice=dice_loss,
         classes_path=classes_path, model_path=model_path, input_shape=input_shape, \
         Init_Epoch=Init_Epoch, Freeze_Epoch=Freeze_Epoch, UnFreeze_Epoch=UnFreeze_Epoch,
         Freeze_batch_size=Freeze_batch_size, Unfreeze_batch_size=Unfreeze_batch_size, Freeze_Train=Freeze_Train, \
         Init_lr=Init_lr, Min_lr=Min_lr, optimizer_type=optimizer_type, momentum=momentum,
-        lr_decay_type=lr_decay_type, \
-        save_period=save_period, save_dir=save_dir, num_workers=num_workers, num_train=num_train, num_val=num_val
+        lr_decay_type=lr_decay_type, save_period=save_period, save_dir=save_dir, num_workers=num_workers,
+        um_train=num_train, num_val=num_val
     )
     # ---------------------------------------------------------#
     #   总训练世代指的是遍历全部数据的总次数
