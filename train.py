@@ -11,7 +11,6 @@ import torch.distributed as dist
 import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader
-from distutils.util import strtobool
 from nets.Achelous import *
 from loss.detection_loss import (ModelEMA, YOLOLoss, get_lr_scheduler,
                                 set_optimizer_lr, weights_init)
@@ -62,10 +61,10 @@ if __name__ == "__main__":
     #   Cuda    是否使用Cuda
     #           没有GPU可以设置成False
     # ---------------------------------#
-    Cuda = strtobool(args.cuda)
+    Cuda = True if args.cuda == 'True' else False
 
     # ---------------------------------------------------------------------#
-    distributed = strtobool(args.ddp)
+    distributed = True if args.ddp == 'True' else False
     # ---------------------------------------------------------------------#
     #   sync_bn     是否使用sync_bn，DDP模式多卡可用
     # ---------------------------------------------------------------------#
@@ -74,7 +73,7 @@ if __name__ == "__main__":
     #   fp16        是否使用混合精度训练
     #               可减少约一半的显存、需要pytorch1.7.1以上
     # ---------------------------------------------------------------------#
-    fp16 = strtobool(args.fp16)
+    fp16 = True if args.fp16 == 'True' else False
     # ---------------------------------------------------------------------#
     #   classes_path    指向model_data下的txt，与自己训练的数据集相关
     #                   训练前一定要修改classes_path，使其对应自己的数据集
@@ -95,12 +94,12 @@ if __name__ == "__main__":
     # ------------------------------------------------------#
     #   spp: True->SPP, False->SPPF
     # ------------------------------------------------------#
-    spp = strtobool(args.spp)
+    spp = True if args.spp == 'True' else False
 
     # ------------------------------------------------------#
     #   detection head (2 options): normal -> False, lightweight -> True
     # ------------------------------------------------------#
-    lightweight = strtobool(args.nd)
+    lightweight = True if args.nd == 'True' else False
 
     # ------------------------------------------------------#
     #   input_shape     all models support 320*320, all models except mobilevit support 416*416
@@ -246,7 +245,7 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------#
     # 是否需要训练毫米波雷达点云分割
     # ------------------------------------------------------------------#
-    is_radar_pc_seg = strtobool(args.is_pc)
+    is_radar_pc_seg = True if args.is_pc == 'True' else False
 
     pc_seg_model = args.pc_model
     # ------------------------------------------------------------------#
@@ -280,12 +279,12 @@ if __name__ == "__main__":
     #   种类少（几类）时，设置为True
     #   种类多（十几类）时，如果batch_size比较大（10以上），那么设置为True
     #   种类多（十几类）时，如果batch_size比较小（10以下），那么设置为False
-    dice_loss = strtobool(args.dice)
+    dice_loss = True if args.dice == 'True' else False
 
     # ------------------------------------------------------------------#
     #   是否使用focal loss来防止正负样本不平衡
     # ------------------------------------------------------------------#
-    focal_loss = strtobool(args.focal)
+    focal_loss = True if args.focal == 'True' else False
 
     # ------------------------------------------------------------------#
     #   是否给不同种类赋予不同的损失权值，默认是平衡的。

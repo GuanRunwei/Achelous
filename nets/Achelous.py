@@ -52,7 +52,7 @@ class Achelous(nn.Module):
 
 class Achelous3T(nn.Module):
     def __init__(self, num_det, num_seg, phi='SO', image_channels=3, radar_channels=3, resolution=320,
-                 backbone='en', neck='gdf', pc_seg='pn', pc_channels=6, pc_classes=9, nano_head=True):
+                 backbone='en', neck='gdf', pc_seg='pn', pc_channels=6, pc_classes=9, nano_head=True, spp=True):
         super(Achelous3T, self).__init__()
 
         self.num_det = num_det
@@ -64,7 +64,7 @@ class Achelous3T(nn.Module):
         self.radar_channels = radar_channels
 
         self.image_radar_encoder = IREncoder(num_class_seg=num_seg, resolution=resolution, backbone=backbone, neck=neck,
-                                             phi=phi)
+                                             phi=phi, use_spp=spp)
         self.det_head = DecoupleHead(num_classes=num_det, phi=phi, nano_head=nano_head)
 
     def forward(self, x, x_radar):
