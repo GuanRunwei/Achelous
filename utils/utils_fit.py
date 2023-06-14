@@ -1,16 +1,11 @@
 import os
-
 import torch
 from tqdm import tqdm
-
 from utils.utils import get_lr
-
 from loss.segmentation_loss import (CE_Loss, Dice_loss, Focal_Loss,
                                      weights_init)
-
 from utils_seg.utils import get_lr
 from utils_seg.utils_metrics import f_score
-
 from loss.multitaskloss import HUncertainty
 from loss.mgda import MGDA
 from loss.pc_seg_loss import NllLoss
@@ -169,6 +164,12 @@ def fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history
             scaler.scale(total_loss).backward()
             scaler.step(optimizer)
             scaler.update()
+
+            # scaler.scale(total_loss).backward()
+            # scaler.unscale_(optimizer)  # unscale gradients
+            # torch.nn.utils.clip_grad_norm_(model_train.parameters(), max_norm=10.0)  # clip gradients
+            # scaler.step(optimizer)
+            # scaler.update()
         if ema:
             ema.update(model_train)
 

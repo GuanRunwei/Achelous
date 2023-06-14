@@ -53,6 +53,7 @@ if __name__ == "__main__":
     parser.add_argument("--pc_model", type=str, default='pn')
     parser.add_argument("--spp", type=str, default='True')
     parser.add_argument("--data_root", type=str, default='/home/dalianmao/WaterScenes_new')
+    parser.add_argument("--local_rank", default=-1, type=int, help='node rank for distributed training')
 
     args = parser.parse_args()
 
@@ -442,7 +443,7 @@ if __name__ == "__main__":
         Freeze_batch_size=Freeze_batch_size, Unfreeze_batch_size=Unfreeze_batch_size, Freeze_Train=Freeze_Train, \
         Init_lr=Init_lr, Min_lr=Min_lr, optimizer_type=optimizer_type, momentum=momentum,
         lr_decay_type=lr_decay_type, save_period=save_period, save_dir=save_dir, num_workers=num_workers,
-        um_train=num_train, num_val=num_val
+        num_train=num_train, num_val=num_val
     )
     # ---------------------------------------------------------#
     #   总训练世代指的是遍历全部数据的总次数
