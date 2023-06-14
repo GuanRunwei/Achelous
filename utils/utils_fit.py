@@ -4,10 +4,8 @@ import torch
 from tqdm import tqdm
 
 from utils.utils import get_lr
-
 from loss.segmentation_loss import (CE_Loss, Dice_loss, Focal_Loss,
                                      weights_init)
-
 from utils_seg.utils import get_lr
 from utils_seg.utils_metrics import f_score
 from loss.multitaskloss import HUncertainty
