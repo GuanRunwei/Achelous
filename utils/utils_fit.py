@@ -169,6 +169,12 @@ def fit_one_epoch(model_train, model, ema, yolo_loss, loss_history, loss_history
             scaler.scale(total_loss).backward()
             scaler.step(optimizer)
             scaler.update()
+
+            # scaler.scale(total_loss).backward()
+            # scaler.unscale_(optimizer)  # unscale gradients
+            # torch.nn.utils.clip_grad_norm_(model_train.parameters(), max_norm=10.0)  # clip gradients
+            # scaler.step(optimizer)
+            # scaler.update()
         if ema:
             ema.update(model_train)
 

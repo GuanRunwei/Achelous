@@ -52,6 +52,7 @@ if __name__ == "__main__":
     parser.add_argument("--focal", type=str, default="True")
     parser.add_argument("--pc_model", type=str, default='pn')
     parser.add_argument("--spp", type=str, default='True')
+    parser.add_argument("--local_rank", default=-1, type=int, help='node rank for distributed training')
 
     args = parser.parse_args()
 
@@ -207,7 +208,7 @@ if __name__ == "__main__":
     #   （二）此处设置评估参数较为保守，目的是加快评估速度。
     # ------------------------------------------------------------------#
     eval_flag = True
-    eval_period = 5
+    eval_period = 1
     # ------------------------------------------------------------------#
     #   num_workers     用于设置是否使用多线程读取数据
     #                   开启后会加快数据读取速度，但是会占用更多内存
@@ -441,7 +442,7 @@ if __name__ == "__main__":
         Freeze_batch_size=Freeze_batch_size, Unfreeze_batch_size=Unfreeze_batch_size, Freeze_Train=Freeze_Train, \
         Init_lr=Init_lr, Min_lr=Min_lr, optimizer_type=optimizer_type, momentum=momentum,
         lr_decay_type=lr_decay_type, save_period=save_period, save_dir=save_dir, num_workers=num_workers,
-        um_train=num_train, num_val=num_val
+        num_train=num_train, num_val=num_val
     )
     # ---------------------------------------------------------#
     #   总训练世代指的是遍历全部数据的总次数
