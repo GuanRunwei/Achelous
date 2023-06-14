@@ -1,8 +1,6 @@
 import os
-
 import torch
 from tqdm import tqdm
-
 from utils.utils import get_lr
 from loss.segmentation_loss import (CE_Loss, Dice_loss, Focal_Loss,
                                      weights_init)
