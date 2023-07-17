@@ -192,11 +192,13 @@ mIoU-pc: mIoU of point clouds
 https://github.com/bubbliiiing
 
 ## Citation
-> @misc{guan2023achelous,
->       title={Achelous: A Fast Unified Water-surface Panoptic Perception Framework based on Fusion of Monocular Camera and 4D mmWave Radar}, 
->       author={Runwei Guan and Shanliang Yao and Xiaohui Zhu and Ka Lok Man and Eng Gee Lim and Jeremy Smith and Yong Yue and Yutao Yue},
->       year={2023},
->       eprint={2307.07102},
->       archivePrefix={arXiv},
->       primaryClass={cs.CV}
-> }
+```BibTeX
+@misc{guan2023achelous,
+      title={Achelous: A Fast Unified Water-surface Panoptic Perception Framework based on Fusion of Monocular Camera and 4D mmWave Radar}, 
+      author={Runwei Guan and Shanliang Yao and Xiaohui Zhu and Ka Lok Man and Eng Gee Lim and Jeremy Smith and Yong Yue and Yutao Yue},
+      year={2023},
+      eprint={2307.07102},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV}
+}
+```
