@@ -14,6 +14,7 @@ from backbone.vision.mobilevit_modules.mobilevit import mobilevit_xxs, mobilevit
 from backbone.vision.edgenext_modules.model import edgenext_xx_small, edgenext_x_small, edgenext_small
 from backbone.vision.edgevit_modules.edgevit import edgevit_xxs, edgevit_xs, edgevit_s
 from backbone.vision.repvit_modules.repvit import repvit_m1, repvit_m2, repvit_m3
+from backbone.vision.poolformer_modules.poolformer import poolformer_S0, poolformer_S1, poolformer_S2
 
 
 image_encoder_width = {
@@ -61,6 +62,8 @@ class GhostDualFPN(nn.Module):
                 self.backbone = edgevit_xxs(resolution=resolution)
             elif backbone == 'rep':
                 self.backbone = repvit_m1()
+            elif backbone == 'pf':
+                self.backbone = poolformer_S0()
 
         elif phi == 'S1':
             if backbone == 'ef':
@@ -73,6 +76,8 @@ class GhostDualFPN(nn.Module):
                 self.backbone = edgevit_xs(resolution=resolution)
             elif backbone == 'rep':
                 self.backbone = repvit_m2()
+            elif backbone == 'pf':
+                self.backbone = poolformer_S1()
 
         elif phi == 'S2':
             if backbone == 'ef':
@@ -85,6 +90,8 @@ class GhostDualFPN(nn.Module):
                 self.backbone = edgevit_s(resolution=resolution)
             elif backbone == 'rep':
                 self.backbone = repvit_m3()
+            elif backbone == 'pf':
+                self.backbone = poolformer_S2()
 
         elif phi == 'L':
             self.backbone = image_encoder_l(resolution=resolution)
