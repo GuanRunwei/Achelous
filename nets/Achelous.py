@@ -43,10 +43,6 @@ class Achelous(nn.Module):
                                              phi=phi, use_spp=spp)
         self.det_head = DecoupleHead(num_classes=num_det, phi=phi, nano_head=nano_head)
 
-        if self.training:
-            pass
-            # self.vjda_networks = VRJA_VAE()
-
     def feature_augment(self, fpn_input):
         pass
 
@@ -75,9 +71,6 @@ class Achelous3T(nn.Module):
                                              phi=phi, use_spp=spp)
         self.det_head = DecoupleHead(num_classes=num_det, phi=phi, nano_head=nano_head)
 
-        if self.training:
-            pass
-            # self.vrja_networks =
 
     def forward(self, x, x_radar):
         fpn_out, se_seg_output, lane_seg_output = self.image_radar_encoder(x, x_radar)
@@ -90,19 +83,18 @@ if __name__ == '__main__':
     input_map = torch.randn((1, 3, 320, 320)).to(device)
     input_map_radar = torch.randn((1, 3, 320, 320)).to(device)
     input_pc_radar = torch.randn((1, 6, 256)).to(device)
-    model = Achelous(num_det=8, num_seg=9, phi='S0', resolution=320, backbone='en', neck='cdf', pc_channels=6,
+    model = Achelous3T(num_det=8, num_seg=9, phi='S0', resolution=320, backbone='pf', neck='gdf', pc_channels=6,
                      pc_classes=8, nano_head=True).to(device)
     model.eval()
-    output_map1, output_map2, output_map3, output_map4 = model(input_map, input_map_radar, input_pc_radar)
+    output_map1, output_map2, output_map3 = model(input_map, input_map_radar)
     print(output_map1[0].shape)
     print(output_map1[1].shape)
     print(output_map1[2].shape)
     print(output_map2.shape)
     print(output_map3.shape)
-    print(output_map4[0].shape)
 
-    print(summary(model, input_size=[(1, 3, 320, 320), (1, 3, 320, 320), (1, 6, 256)]))
-    macs, params = profile(model, inputs=[input_map, input_map_radar, input_pc_radar])
+    print(summary(model, input_size=[(1, 3, 320, 320), (1, 3, 320, 320)]))
+    macs, params = profile(model, inputs=[input_map, input_map_radar])
     macs *= 2
     macs, params = clever_format([macs, params], "%.3f")
     print("FLOPs:", macs)
@@ -111,6 +103,6 @@ if __name__ == '__main__':
     t1 = time.time()
     test_times = 300
     for i in range(test_times):
-        output = model(input_map, input_map_radar, input_pc_radar)
+        output = model(input_map, input_map_radar)
     t2 = time.time()
     print("fps:", (1 / ((t2 - t1) / test_times)))
