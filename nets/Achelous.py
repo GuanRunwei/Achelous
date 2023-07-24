@@ -13,7 +13,6 @@ from backbone.IREncoder import IREncoder
 from backbone.attention_modules.shuffle_attention import *
 from head.decouplehead import DecoupleHead
 from nets.pointcloudseg.pointnet2.pointnet_sem_seg import PointNet_SEG
-from feature_augment.vrja_network import VRJA_VAE
 
 
 image_encoder_width = {

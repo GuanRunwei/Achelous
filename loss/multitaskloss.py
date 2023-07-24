@@ -9,14 +9,20 @@ class HUncertainty(nn.Module):
         self.task_num = task_num
         self.log_vars = nn.Parameter(torch.zeros(task_num))
 
-    def forward(self, loss_seg, loss_seg_wl, loss_det):
-        precision0 = torch.exp(-self.log_vars[0])
-        loss0 = precision0 * loss_det + self.log_vars[0] ** 2
+    def forward(self, loss_items):
+        assert len(loss_items) == self.task_num
 
-        precision1 = torch.exp(-self.log_vars[1])
-        loss1 = precision1 * loss_seg + self.log_vars[1] ** 2
+        total_loss = [torch.exp(-self.log_vars[i])*loss_items[i] for i in range(len(loss_items))]
+        total_loss = sum(total_loss)
 
-        precision2 = torch.exp(-self.log_vars[2])
-        loss2 = precision2 * loss_seg_wl + self.log_vars[2] ** 2
+        # precision0 = torch.exp(-self.log_vars[0])
+        # loss0 = precision0 * loss_det
+        # # loss0 = precision0 * loss_det + self.log_vars[0] ** 2
+        #
+        # precision1 = torch.exp(-self.log_vars[1])
+        # loss1 = precision1 * loss_seg
+        #
+        # precision2 = torch.exp(-self.log_vars[2])
+        # loss2 = precision2 * loss_seg_wl
 
-        return loss0 + loss1 + loss2
+        return total_loss

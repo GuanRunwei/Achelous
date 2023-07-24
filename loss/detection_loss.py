@@ -11,7 +11,7 @@ import torch.nn.functional as F
 
 
 class IOUloss(nn.Module):
-    def __init__(self, reduction="none", loss_type="iou"):
+    def __init__(self, reduction="none", loss_type="giou"):
         super(IOUloss, self).__init__()
         self.reduction = reduction
         self.loss_type = loss_type
@@ -181,7 +181,8 @@ class YOLOLoss(nn.Module):
         fg_masks = torch.cat(fg_masks, 0)
 
         num_fg = max(num_fg, 1)
-        loss_iou = (self.iou_loss(bbox_preds.view(-1, 4)[fg_masks], reg_targets)).sum()
+        reg_preds = bbox_preds.view(-1, 4)[fg_masks]
+        loss_iou = (self.iou_loss(reg_preds, reg_targets)).sum()
         loss_obj = (self.bcewithlog_loss(obj_preds.view(-1, 1), obj_targets)).sum()
         loss_cls = (self.bcewithlog_loss(cls_preds.view(-1, self.num_classes)[fg_masks], cls_targets)).sum()
         reg_weight = 5.0

@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 
-from loss.abstract_weighting import AbsWeighting
+from LibMTL.weighting.abstract_weighting import AbsWeighting
 
 
 class MGDA(AbsWeighting):
@@ -11,8 +11,10 @@ class MGDA(AbsWeighting):
 
     This method is proposed in `Multi-Task Learning as Multi-Objective Optimization (NeurIPS 2018) <https://papers.nips.cc/paper/2018/hash/432aca3a1e345e339f35a30c8f65edce-Abstract.html>`_ \
     and implemented by modifying from the `official PyTorch implementation <https://github.com/isl-org/MultiObjectiveOptimization>`_.
+
     Args:
         mgda_gn ({'none', 'l2', 'loss', 'loss+'}, default='none'): The type of gradient normalization.
+
     """
 
     def __init__(self):
@@ -103,6 +105,8 @@ class MGDA(AbsWeighting):
             if torch.sum(torch.abs(change)) < STOP_CRIT:
                 return sol_vec
             sol_vec = new_sol_vec
+            iter_count += 1
+        return sol_vec
 
     def _gradient_normalizers(self, grads, loss_data, ntype):
         if ntype == 'l2':
@@ -119,7 +123,7 @@ class MGDA(AbsWeighting):
         return grads
 
     def backward(self, losses, **kwargs):
-        mgda_gn = 'loss+'
+        mgda_gn = kwargs['mgda_gn']
         grads = self._get_grads(losses, mode='backward')
         if self.rep_grad:
             per_grads, grads = grads[0], grads[1]

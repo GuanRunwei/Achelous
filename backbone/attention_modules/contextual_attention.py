@@ -5,6 +5,10 @@ from torch.nn import init
 from torch.nn.modules.activation import ReLU
 from torch.nn.modules.batchnorm import BatchNorm2d
 from torch.nn import functional as F
+import time
+from torchinfo import summary
+from thop import profile
+from thop import clever_format
 
 
 class ContextAttention(nn.Module):
@@ -48,7 +52,21 @@ class ContextAttention(nn.Module):
 
 
 if __name__ == '__main__':
-    input = torch.randn(50, 512, 7, 7)
-    cot = ContextAttention(dim=512, kernel_size=3)
+    input = torch.randn(1, 672, 10, 10).cuda()
+    cot = ContextAttention(dim=672, kernel_size=3).cuda()
     output = cot(input)
     print(output.shape)
+
+    print(summary(cot, input_size=[(1, 672, 10, 10)]))
+    macs, params = profile(cot, inputs=[input])
+    macs *= 2
+    macs, params = clever_format([macs, params], "%.3f")
+    print("FLOPs:", macs)
+    print("Params:", params)
+
+    t1 = time.time()
+    test_times = 300
+    for i in range(test_times):
+        output = cot(input)
+    t2 = time.time()
+    print("fps:", (1 / ((t2 - t1) / test_times)))

@@ -52,6 +52,7 @@ if __name__ == "__main__":
     parser.add_argument("--focal", type=str, default="True")
     parser.add_argument("--pc_model", type=str, default='pn')
     parser.add_argument("--spp", type=str, default='True')
+    parser.add_argument("--data_root", type=str, default='E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new')
     parser.add_argument("--local_rank", default=-1, type=int, help='node rank for distributed training')
 
     args = parser.parse_args()
@@ -208,7 +209,7 @@ if __name__ == "__main__":
     #   （二）此处设置评估参数较为保守，目的是加快评估速度。
     # ------------------------------------------------------------------#
     eval_flag = True
-    eval_period = 5
+    eval_period = 1
     # ------------------------------------------------------------------#
     #   num_workers     用于设置是否使用多线程读取数据
     #                   开启后会加快数据读取速度，但是会占用更多内存
@@ -220,7 +221,7 @@ if __name__ == "__main__":
     # ----------------------------------------------------#
     # 雷达feature map路径
     # ----------------------------------------------------#
-    radar_file_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/VOCradar320"
+    radar_file_path = args.data_root + "/radar/VOCradar320"
 
     # ----------------------------------------------------#
     #   获得目标检测图片路径和标签
@@ -231,17 +232,17 @@ if __name__ == "__main__":
     # ----------------------------------------------------#
     #   jpg图像路径
     # ----------------------------------------------------#
-    jpg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/images/images"
+    jpg_path = args.data_root + "/images"
 
     # ------------------------------------------------------------------#
     # 语义分割数据集路径
     # ------------------------------------------------------------------#
-    se_seg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/semantic/SegmentationClass/SegmentationClass"
+    se_seg_path = args.data_root + "/semantic/SegmentationClass/SegmentationClass"
 
     # ------------------------------------------------------------------#
     # 水岸线分割数据集路径
     # ------------------------------------------------------------------#
-    wl_seg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/waterline/SegmentationClassPNG/SegmentationClassPNG"
+    wl_seg_path = args.data_root + "/waterline/SegmentationClassPNG/SegmentationClassPNG"
 
     # ------------------------------------------------------------------#
     # 是否需要训练毫米波雷达点云分割
@@ -257,7 +258,7 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------#
     # 毫米波雷达点云分割路径
     # ------------------------------------------------------------------#
-    radar_pc_seg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/radar_0220/radar"
+    radar_pc_seg_path = args.data_root + "radar/radar_0220/radar"
 
     # ------------------------------------------------------------------#
     # 毫米波雷达点云分割属性, 其中label表示雷达目标的语义标签
