@@ -52,7 +52,7 @@ if __name__ == "__main__":
     parser.add_argument("--focal", type=str, default="True")
     parser.add_argument("--pc_model", type=str, default='pn')
     parser.add_argument("--spp", type=str, default='True')
-    parser.add_argument("--local_rank", default=-1, type=int, help='node rank for distributed training')
+    parser.add_argument("--data_root", type=str, default='E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new')
 
     args = parser.parse_args()
 
@@ -112,6 +112,27 @@ if __name__ == "__main__":
     phi = args.phi
     # ------------------------------------------------------#
 
+    # ----------------------------------------------------------------------------------------------------------------------------#
+    #   训练分为两个阶段，分别是冻结阶段和解冻阶段。设置冻结阶段是为了满足机器性能不足的同学的训练需求。
+    #   冻结训练需要的显存较小，显卡非常差的情况下，可设置Freeze_Epoch等于UnFreeze_Epoch，Freeze_Train = True，此时仅仅进行冻结训练。
+    #
+    #   在此提供若干参数设置建议，各位训练者根据自己的需求进行灵活调整：
+    #   （一）从整个模型的预训练权重开始训练：
+    #       Adam：
+    #           Init_Epoch = 0，Freeze_Epoch = 50，UnFreeze_Epoch = 100，Freeze_Train = True，optimizer_type = 'adam'，Init_lr = 1e-3，weight_decay = 0。（冻结）
+    #           Init_Epoch = 0，UnFreeze_Epoch = 100，Freeze_Train = False，optimizer_type = 'adam'，Init_lr = 1e-3，weight_decay = 0。（不冻结）
+    #       SGD：
+    #           Init_Epoch = 0，Freeze_Epoch = 50，UnFreeze_Epoch = 300，Freeze_Train = True，optimizer_type = 'sgd'，Init_lr = 1e-2，weight_decay = 5e-4。（冻结）
+    #           Init_Epoch = 0，UnFreeze_Epoch = 300，Freeze_Train = False，optimizer_type = 'sgd'，Init_lr = 1e-2，weight_decay = 5e-4。（不冻结）
+    #       其中：UnFreeze_Epoch可以在100-300之间调整。
+    #   （二）从0开始训练：
+    #       Init_Epoch = 0，UnFreeze_Epoch >= 300，Unfreeze_batch_size >= 16，Freeze_Train = False（不冻结训练）
+    #       其中：UnFreeze_Epoch尽量不小于300。optimizer_type = 'sgd'，Init_lr = 1e-2，mosaic = True。
+    #   （三）batch_size的设置：
+    #       在显卡能够接受的范围内，以大为好。显存不足与数据集大小无关，提示显存不足（OOM或者CUDA out of memory）请调小batch_size。
+    #       受到BatchNorm层影响，batch_size最小为2，不能为1。
+    #       正常情况下Freeze_batch_size建议为Unfreeze_batch_size的1-2倍。不建议设置的差距过大，因为关系到学习率的自动调整。
+    # ----------------------------------------------------------------------------------------------------------------------------#
     # ------------------------------------------------------------------#
     #   冻结阶段训练参数
     #   此时模型的主干被冻结了，特征提取网络不发生改变
@@ -187,7 +208,7 @@ if __name__ == "__main__":
     #   （二）此处设置评估参数较为保守，目的是加快评估速度。
     # ------------------------------------------------------------------#
     eval_flag = True
-    eval_period = 5
+    eval_period = 1
     # ------------------------------------------------------------------#
     #   num_workers     用于设置是否使用多线程读取数据
     #                   开启后会加快数据读取速度，但是会占用更多内存
@@ -199,7 +220,7 @@ if __name__ == "__main__":
     # ----------------------------------------------------#
     # 雷达feature map路径
     # ----------------------------------------------------#
-    radar_file_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/VOCradar320"
+    radar_file_path = args.data_root + "/radar/VOCradar320"
 
     # ----------------------------------------------------#
     #   获得目标检测图片路径和标签
@@ -210,17 +231,17 @@ if __name__ == "__main__":
     # ----------------------------------------------------#
     #   jpg图像路径
     # ----------------------------------------------------#
-    jpg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/images/images"
+    jpg_path = args.data_root + "/images"
 
     # ------------------------------------------------------------------#
     # 语义分割数据集路径
     # ------------------------------------------------------------------#
-    se_seg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/semantic/SegmentationClass/SegmentationClass"
+    se_seg_path = args.data_root + "/semantic/SegmentationClass/SegmentationClass"
 
     # ------------------------------------------------------------------#
     # 水岸线分割数据集路径
     # ------------------------------------------------------------------#
-    wl_seg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/waterline/SegmentationClassPNG/SegmentationClassPNG"
+    wl_seg_path = args.data_root + "/waterline/SegmentationClassPNG/SegmentationClassPNG"
 
     # ------------------------------------------------------------------#
     # 是否需要训练毫米波雷达点云分割
@@ -236,7 +257,7 @@ if __name__ == "__main__":
     # ------------------------------------------------------------------#
     # 毫米波雷达点云分割路径
     # ------------------------------------------------------------------#
-    radar_pc_seg_path = "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/radar_0220/radar"
+    radar_pc_seg_path = args.data_root + "radar/radar_0220/radar"
 
     # ------------------------------------------------------------------#
     # 毫米波雷达点云分割属性, 其中label表示雷达目标的语义标签
@@ -421,7 +442,7 @@ if __name__ == "__main__":
         Freeze_batch_size=Freeze_batch_size, Unfreeze_batch_size=Unfreeze_batch_size, Freeze_Train=Freeze_Train, \
         Init_lr=Init_lr, Min_lr=Min_lr, optimizer_type=optimizer_type, momentum=momentum,
         lr_decay_type=lr_decay_type, save_period=save_period, save_dir=save_dir, num_workers=num_workers,
-        num_train=num_train, num_val=num_val
+        um_train=num_train, num_val=num_val
     )
     # ---------------------------------------------------------#
     #   总训练世代指的是遍历全部数据的总次数
