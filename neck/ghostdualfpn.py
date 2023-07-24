@@ -60,7 +60,7 @@ class GhostDualFPN(nn.Module):
                 self.backbone = edgenext_xx_small()
             elif backbone == 'ev':
                 self.backbone = edgevit_xxs(resolution=resolution)
-            elif backbone == 'rep':
+            elif backbone == 'rv':
                 self.backbone = repvit_m1()
             elif backbone == 'pf':
                 self.backbone = poolformer_S0()
@@ -74,7 +74,7 @@ class GhostDualFPN(nn.Module):
                 self.backbone = edgenext_x_small()
             elif backbone == 'ev':
                 self.backbone = edgevit_xs(resolution=resolution)
-            elif backbone == 'rep':
+            elif backbone == 'rv':
                 self.backbone = repvit_m2()
             elif backbone == 'pf':
                 self.backbone = poolformer_S1()
@@ -88,7 +88,7 @@ class GhostDualFPN(nn.Module):
                 self.backbone = edgenext_small()
             elif backbone == 'ev':
                 self.backbone = edgevit_s(resolution=resolution)
-            elif backbone == 'rep':
+            elif backbone == 'rv':
                 self.backbone = repvit_m3()
             elif backbone == 'pf':
                 self.backbone = poolformer_S2()

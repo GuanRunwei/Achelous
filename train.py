@@ -83,7 +83,7 @@ if __name__ == "__main__":
     model_path = ''
 
     # ------------------------------------------------------#
-    #   backbone (4 options): ef (EfficientFormer), en (EdgeNeXt), ev (EdgeViT), mv (MobileViT)
+    #   backbone (4 options): ef (EfficientFormer), en (EdgeNeXt), ev (EdgeViT), mv (MobileViT), rv (RepViT), pf (PoolFormer)
     # ------------------------------------------------------#
     backbone = args.backbone
 
