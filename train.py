@@ -208,7 +208,7 @@ if __name__ == "__main__":
     #   （二）此处设置评估参数较为保守，目的是加快评估速度。
     # ------------------------------------------------------------------#
     eval_flag = True
-    eval_period = 1
+    eval_period = 5
     # ------------------------------------------------------------------#
     #   num_workers     用于设置是否使用多线程读取数据
     #                   开启后会加快数据读取速度，但是会占用更多内存
@@ -442,7 +442,7 @@ if __name__ == "__main__":
         Freeze_batch_size=Freeze_batch_size, Unfreeze_batch_size=Unfreeze_batch_size, Freeze_Train=Freeze_Train, \
         Init_lr=Init_lr, Min_lr=Min_lr, optimizer_type=optimizer_type, momentum=momentum,
         lr_decay_type=lr_decay_type, save_period=save_period, save_dir=save_dir, num_workers=num_workers,
-        um_train=num_train, num_val=num_val
+        num_train=num_train, num_val=num_val
     )
     # ---------------------------------------------------------#
     #   总训练世代指的是遍历全部数据的总次数
@@ -496,20 +496,26 @@ if __name__ == "__main__":
         # ---------------------------------------#
         #   根据optimizer_type选择优化器
         # ---------------------------------------#
-        pg0, pg1, pg2 = [], [], []
-        for k, v in model.named_modules():
-            if hasattr(v, "bias") and isinstance(v.bias, nn.Parameter):
-                pg2.append(v.bias)
-            if isinstance(v, nn.BatchNorm2d) or "bn" in k:
-                pg0.append(v.weight)
-            elif hasattr(v, "weight") and isinstance(v.weight, nn.Parameter):
-                pg1.append(v.weight)
-        optimizer = {
-            'adam': optim.Adam(pg0, Init_lr_fit, betas=(momentum, 0.999)),
-            'sgd': optim.SGD(pg0, Init_lr_fit, momentum=momentum, nesterov=True)
-        }[optimizer_type]
-        optimizer.add_param_group({"params": pg1, "weight_decay": weight_decay})
-        optimizer.add_param_group({"params": pg2})
+        if backbone != 'rv':
+            pg0, pg1, pg2 = [], [], []
+            for k, v in model.named_modules():
+                if hasattr(v, "bias") and isinstance(v.bias, nn.Parameter):
+                    pg2.append(v.bias)
+                if isinstance(v, nn.BatchNorm2d) or "bn" in k:
+                    pg0.append(v.weight)
+                elif hasattr(v, "weight") and isinstance(v.weight, nn.Parameter):
+                    pg1.append(v.weight)
+            optimizer = {
+                'adam': optim.Adam(pg0, Init_lr_fit, betas=(momentum, 0.999)),
+                'sgd': optim.SGD(pg0, Init_lr_fit, momentum=momentum, nesterov=True)
+            }[optimizer_type]
+            optimizer.add_param_group({"params": pg1, "weight_decay": weight_decay})
+            optimizer.add_param_group({"params": pg2})
+        else:
+            if optimizer_type == 'sgd':
+                optimizer = optim.SGD(model.parameters(), weight_decay=weight_decay, lr=Init_lr_fit)
+            elif optimizer_type == 'adam':
+                optimizer = optim.AdamW(model.parameters(), weight_decay=weight_decay, lr=Init_lr_fit)
 
         # ---------------------------------------#
         #   获得学习率下降的公式
