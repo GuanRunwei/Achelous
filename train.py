@@ -44,7 +44,7 @@ if __name__ == "__main__":
     parser.add_argument("--bs", type=int, default=32)
     parser.add_argument("--epoch", type=int, default=100)
     parser.add_argument("--lr_init", type=float, default=0.03)
-    parser.add_argument("--lr_decay", type=str, default=5e-4)
+    parser.add_argument("--lr_decay", type=str, default="cos")
     parser.add_argument("--opt", type=str, default='sgd')
     parser.add_argument("--pc_num", type=int, default=512)
     parser.add_argument("--nw", type=int, default=4)
