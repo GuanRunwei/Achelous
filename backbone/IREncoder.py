@@ -13,6 +13,7 @@ from backbone.attention_modules.eca import eca_block
 from backbone.radar.RadarEncoder import RCNet
 from neck.ghostdualfpn import GhostDualFPN
 from neck.cspdualfpn import CSPDualFPN
+from neck.repdualfpn import RepDualFPN
 
 
 image_encoder_width = {
@@ -24,7 +25,7 @@ image_encoder_width = {
 
 
 class IREncoder(nn.Module):
-    def __init__(self, num_class_seg, phi='S0', resolution=416, use_spp=True, image_channels=3, radar_channels=3, backbone='ef', neck='gdf'):
+    def __init__(self, num_class_seg, phi='S0', resolution=416, use_spp=False, image_channels=3, radar_channels=3, backbone='ef', neck='gdf'):
         super(IREncoder, self).__init__()
 
         self.num_class_seg = num_class_seg
@@ -35,6 +36,9 @@ class IREncoder(nn.Module):
                                     backbone=backbone)
         elif neck == 'cdf':
             self.fpn = CSPDualFPN(num_class_seg=num_class_seg, phi=phi, resolution=resolution, use_spp=use_spp,
+                                  backbone=backbone)
+        elif neck == 'rdf':
+            self.fpn = RepDualFPN(num_class_seg=num_class_seg, phi=phi, resolution=resolution, use_spp=use_spp,
                                   backbone=backbone)
 
         self.radar_encoder = RCNet(in_channels=radar_channels, phi=phi)

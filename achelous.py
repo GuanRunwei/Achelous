@@ -95,7 +95,7 @@ class achelous(object):
         #   该变量用于控制是否使用letterbox_image对输入图像进行不失真的resize，
         #   在多次测试后，发现关闭letterbox_image直接resize的效果更好
         # ---------------------------------------------------------------------#
-        "letterbox_image": False,
+        "letterbox_image": True,
         # -------------------------------#
         #   是否使用Cuda
         #   没有GPU可以设置成False
@@ -294,6 +294,8 @@ class achelous(object):
             #   取出每一个像素点的种类
             # ---------------------------------------------------#
             output_seg = output_seg.argmax(axis=-1)
+            output_seg[(output_seg != 0) & (output_seg != 8)] = 0
+
             # -------------------------------------------------------- #
 
             # -------------------------------------------------------- #
@@ -332,7 +334,7 @@ class achelous(object):
             #   将新图与原图及进行混合
             # ------------------------------------------------#
             image = Image.blend(old_img, image, 0.45)
-            image = Image.blend(image, image_line, 0.3)
+            # image = Image.blend(image, image_line, 0.3)
 
             # contrast_enhancer = ImageEnhance.Contrast(image)
             # # 传入调整系数1.2
@@ -397,6 +399,8 @@ class achelous(object):
 
         for i, c in list(enumerate(top_label)):
             predicted_class = self.class_names[int(c)]
+            if predicted_class == 'sailor':
+                continue
             box = top_boxes[i]
             score = top_conf[i]
 

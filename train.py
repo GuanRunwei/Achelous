@@ -36,8 +36,8 @@ if __name__ == "__main__":
     parser.add_argument("--ddp", type=str, default="False")
     parser.add_argument("--fp16", type=str, default="True")
     parser.add_argument("--is_pc", help="use pc seg", type=str, default="False")
-    parser.add_argument("--backbone", type=str, default='en')
-    parser.add_argument("--neck", type=str, default='gdf')
+    parser.add_argument("--backbone", type=str, default='mo')
+    parser.add_argument("--neck", type=str, default='rdf')
     parser.add_argument("--nd", type=str, default="True")
     parser.add_argument("--phi", type=str, default='S0')
     parser.add_argument("--resolution", type=int, default=320)
@@ -83,7 +83,7 @@ if __name__ == "__main__":
     model_path = ''
 
     # ------------------------------------------------------#
-    #   backbone (4 options): ef (EfficientFormer), en (EdgeNeXt), ev (EdgeViT), mv (MobileViT), rv (RepViT), pf (PoolFormer)
+    #   backbone (4 options): ef (EfficientFormer), en (EdgeNeXt), ev (EdgeViT), mv (MobileViT), rv (RepViT), pf (PoolFormer), mo (MobileOne), fv (FastViT)
     # ------------------------------------------------------#
     backbone = args.backbone
 

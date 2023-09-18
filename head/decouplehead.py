@@ -28,7 +28,7 @@ class DecoupleHead(nn.Module):
         self.stems = nn.ModuleList()
 
         if nano_head is True:
-            base_num = 64
+            base_num = 96
         else:
             base_num = 256
 
