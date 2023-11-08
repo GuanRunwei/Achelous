@@ -81,7 +81,7 @@ if __name__ == '__main__':
     input_map = torch.randn((1, 3, 320, 320)).to(device)
     input_map_radar = torch.randn((1, 3, 320, 320)).to(device)
     input_pc_radar = torch.randn((1, 6, 256)).to(device)
-    model = Achelous3T(num_det=8, num_seg=9, phi='S0', resolution=320, backbone='mo', neck='rdf', pc_channels=6,
+    model = Achelous3T(num_det=8, num_seg=9, phi='S2', resolution=320, backbone='mv', neck='gdf', pc_channels=6,
                      pc_classes=8, nano_head=True).to(device)
     model.eval()
     for child in model.children():

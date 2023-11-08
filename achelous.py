@@ -29,7 +29,7 @@ class achelous(object):
         #   验证集损失较低不代表mAP较高，仅代表该权值在验证集上泛化性能较好。
         #   如果出现shape不匹配，同时要注意训练时的model_path和classes_path参数的修改
         # --------------------------------------------------------------------------#
-        "model_path"        : "model_data/mv_gdf_nano_ps_s2.pth",
+        "model_path"        : "model_data/mv_gdf_nano_ps_s0.pth",
         "radar_root"        : "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/VOCradar320",
         "radar_pc_root"     : "E:/Big_Datasets/water_surface/benchmark_new/WaterScenes_new/radar/radar_0220/radar",
         "classes_path"      : 'model_data/waterscenes_benchmark.txt',
@@ -45,11 +45,11 @@ class achelous(object):
         # ---------------------------------------------------------------------#
         #   所使用的Achelous的版本，'SO', 'S1', 'S2'
         # ---------------------------------------------------------------------#
-        "phi": 'S2',
+        "phi": 'S0',
         # ---------------------------------------------------------------------#
         #   只有得分大于置信度的预测框会被保留下来
         # ---------------------------------------------------------------------#
-        "confidence": 0.25,
+        "confidence": 0.35,
         # ---------------------------------------------------------------------#
         #   非极大抑制所用到的nms_iou大小
         # ---------------------------------------------------------------------#
@@ -334,7 +334,7 @@ class achelous(object):
             #   将新图与原图及进行混合
             # ------------------------------------------------#
             image = Image.blend(old_img, image, 0.45)
-            # image = Image.blend(image, image_line, 0.3)
+            image = Image.blend(image, image_line, 0.3)
 
             # contrast_enhancer = ImageEnhance.Contrast(image)
             # # 传入调整系数1.2
