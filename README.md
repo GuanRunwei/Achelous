@@ -4,7 +4,7 @@
   <img src="icons/Achelous.png" width = "300" height = "300" alt="Achelous" align=center />
 </div>
 
-## Achelous: A Fast Unified Water-surface Panoptic Perception Framework based on Fusion of Monocular Camera and 4D mmWave Radar
+## Achelous++: Power-Oriented Water-Surface Panoptic Perception Framework on Edge Devices based on Vision-Radar Fusion and Pruning of Heterogeneous Modalities
 
 <div  align="center">    
   <img src="icons/Achelous_str.jpg" alt="ach" align=center />
