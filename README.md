@@ -182,7 +182,7 @@ mIoU-pc: mIoU of point clouds
 
 
 ### Test
-1. Change configrations in achelous.py
+1. Change configurations in achelous.py
 2. See annotations in predict.py and run (including prediction, export, heatmap visualization and export onnx)
 ---
 
