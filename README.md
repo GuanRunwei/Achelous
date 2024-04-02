@@ -193,12 +193,12 @@ https://github.com/bubbliiiing
 
 ## Citation
 ```BibTeX
-@misc{guan2023achelous,
-      title={Achelous: A Fast Unified Water-surface Panoptic Perception Framework based on Fusion of Monocular Camera and 4D mmWave Radar}, 
-      author={Runwei Guan and Shanliang Yao and Xiaohui Zhu and Ka Lok Man and Eng Gee Lim and Jeremy Smith and Yong Yue and Yutao Yue},
-      year={2023},
-      eprint={2307.07102},
-      archivePrefix={arXiv},
-      primaryClass={cs.CV}
+@inproceedings{guan2023achelous,
+  title={Achelous: A fast unified water-surface panoptic perception framework based on fusion of monocular camera and 4d mmwave radar},
+  author={Guan, Runwei and Yao, Shanliang and Zhu, Xiaohui and Man, Ka Lok and Lim, Eng Gee and Smith, Jeremy and Yue, Yong and Yue, Yutao},
+  booktitle={2023 IEEE 26th International Conference on Intelligent Transportation Systems (ITSC)},
+  pages={182--188},
+  year={2023},
+  organization={IEEE}
 }
 ```
