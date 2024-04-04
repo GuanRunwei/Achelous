@@ -1,4 +1,4 @@
-﻿# Achelous
+﻿# Achelous++
 
 <div  align="center">    
   <img src="icons/Achelous.png" width = "300" height = "300" alt="Achelous" align=center />
@@ -193,12 +193,10 @@ https://github.com/bubbliiiing
 
 ## Citation
 ```BibTeX
-@inproceedings{guan2023achelous,
-  title={Achelous: A fast unified water-surface panoptic perception framework based on fusion of monocular camera and 4d mmwave radar},
+@article{guan2023achelous,
+  title={Achelous: A Fast Unified Water-surface Panoptic Perception Framework based on Fusion of Monocular Camera and 4D mmWave Radar},
   author={Guan, Runwei and Yao, Shanliang and Zhu, Xiaohui and Man, Ka Lok and Lim, Eng Gee and Smith, Jeremy and Yue, Yong and Yue, Yutao},
-  booktitle={2023 IEEE 26th International Conference on Intelligent Transportation Systems (ITSC)},
-  pages={182--188},
-  year={2023},
-  organization={IEEE}
+  journal={arXiv preprint arXiv:2307.07102},
+  year={2023}
 }
 ```
